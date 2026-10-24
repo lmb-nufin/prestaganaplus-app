@@ -1,0 +1,15 @@
+# Settings to manage and configure a Firebase App Hosting backend.
+# run:
+  build:
+    - npm install
+    - npm run build
+  start: npm start
+# Environment variables for the production environment
+env:
+  - variable: API_BASE_URL
+    value: "https://apipgprod.creciendo.com.mx/api/AppPG/"
+
+runConfig:
+  # Increase this value if you'd like to automatically spin up
+  # more instances in response to increased traffic.
+  maxInstances: 1

@@ -1,0 +1,579 @@
+
+'use server';
+
+import { z } from 'zod';
+import { addVale, findValeByFolio, getVales as getValesFromDb, updateValeStatus as updateValeStatusInDb, findUserByAssociateNumber, deleteValeByFolio, findClientByCurp, createUser, updateUserNip, storeOtpForReset, getStoredOtpForReset } from '@/lib/data';
+import { revalidatePath } from 'next/cache';
+import { signIn, signOut, auth } from '@/lib/auth';
+import { AuthError } from 'next-auth';
+import { redirect } from 'next/navigation';
+
+
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    await signIn('credentials', formData);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return 'Credenciales inválidas.';
+        default:
+          return 'Ocurrió un error inesperado. Por favor, intenta de nuevo.';
+      }
+    }
+    throw error;
+  }
+}
+
+export async function performSignOut() {
+    await signOut({ redirectTo: '/login' });
+}
+
+export async function createVale(prevState: any, formData: FormData) {
+    const session = await auth();
+    if (!session?.user?.associateNumber) {
+        return { message: 'Error de autenticación: No se pudo obtener el número de asociada.' };
+    }
+    const associateNumber = session.user.associateNumber;
+
+    const rawFormData = Object.fromEntries(formData.entries());
+    
+    const CreateValeSchema = z.object({
+        firstName: z.string().min(1, 'El nombre es requerido.'),
+        lastNameP: z.string().min(1, 'El apellido paterno es requerido.'),
+        lastNameM: z.string().min(1, 'El apellido materno es requerido.'),
+        birthDate: z.string().min(1, 'La fecha de nacimiento es requerida.'),
+        loanAmount: z.coerce.number().gt(0, 'El monto debe ser mayor a cero.'),
+        installments: z.coerce.number().int().gt(0, 'El número de quincenas debe ser mayor a cero.'),
+        isRenewed: z.string(),
+        phone: z.string().optional(),
+        phone_number: z.string().optional(),
+        id_cliente: z.string().optional(),
+        deviceId: z.string().optional(),
+        deviceModel: z.string().optional(),
+        latitude:z.string().optional(),
+        longitude:z.string().optional(),
+        mapLink: z.string().optional(),
+    });
+
+    const validatedFields = CreateValeSchema.safeParse(rawFormData);
+    
+    if (!validatedFields.success) {
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Error de validación. Revisa los campos.',
+        };
+    }
+    
+    const isRenewed = validatedFields.data.isRenewed === 'true';
+    let phoneE164;
+
+    if (isRenewed) {
+        if (!validatedFields.data.phone) {
+            return { message: 'Falta el número de teléfono para el cliente existente.' };
+        }
+        phoneE164 = validatedFields.data.phone;
+    } else {
+        const phoneRegex = /^\d{10}$/;
+        if (!validatedFields.data.phone_number || !phoneRegex.test(validatedFields.data.phone_number)) {
+             return { 
+                errors: { phone_number: ['El teléfono debe tener 10 dígitos.'] },
+                message: 'El número de teléfono es requerido y debe tener 10 dígitos para nuevos clientes.' 
+            };
+        }
+        phoneE164 = `+52${validatedFields.data.phone_number}`;
+    }
+    const clienteParaEnviar = validatedFields.data.id_cliente && validatedFields.data.id_cliente.trim() !== "" 
+        ? validatedFields.data.id_cliente 
+        : "";
+
+    const latRaw = validatedFields.data.latitude;
+    const lngRaw = validatedFields.data.longitude;
+    
+    const latNum = (latRaw && latRaw !== "") ? parseFloat(latRaw as string) : null;
+    const lngNum = (lngRaw && lngRaw !== "") ? parseFloat(lngRaw as string) : null;
+
+    const generatedMapLink = (latNum && lngNum) 
+    ? `https://www.google.com/maps?q=${latNum},${lngNum}` 
+    : null;
+
+    const dataToSave = {
+        associateNumber: associateNumber,
+        firstName: validatedFields.data.firstName,
+        lastNameP: validatedFields.data.lastNameP,
+        lastNameM: validatedFields.data.lastNameM,
+        birthDate: validatedFields.data.birthDate,
+        loanAmount: validatedFields.data.loanAmount,
+        installments: validatedFields.data.installments,
+        phone: phoneE164,
+        id_cliente: clienteParaEnviar,        
+        deviceId: validatedFields.data.deviceId || 'unknown',
+        deviceModel: validatedFields.data.deviceModel || 'unknown',
+        latitude: validatedFields.data.latitude || 'unknown',
+        longitude: validatedFields.data.longitude || 'unknown',
+        mapLink: generatedMapLink,
+        
+    };
+    
+    let newVale;
+    try {
+        newVale = await addVale(dataToSave);
+    } catch (error) {
+        return { message: 'Error al crear el vale.' };
+    }
+
+  
+    if (!newVale || !Array.isArray(newVale) || newVale.length === 0) {
+        console.error("Respuesta del backend inesperada, no es un array válido:", newVale);
+        return { message: 'No se pudo crear el vale. El servidor no devolvió el folio.' };
+    }
+
+    const folioObject = newVale[0];
+    let folioValue: string | null = null;
+
+    if (folioObject && folioObject.folio) {
+        folioValue = folioObject.folio;
+    } else if (folioObject && folioObject.FOLIO) {
+        folioValue = folioObject.FOLIO;
+    }
+
+    if (!folioValue) {
+        console.error("DEBUG: Objeto recibido que no tiene folio en sus propiedades esperadas:", folioObject);
+        return { message: 'El servidor devolvió un resultado, pero no se pudo obtener el Folio. (Ver consola para DEBUG)' };
+    }
+    
+    revalidatePath('/vales');
+    revalidatePath(`/sign/${folioValue}`);
+
+    return { success: true, message: 'Vale creado', folio: folioValue };
+}
+
+
+
+export async function getVales() {
+  const session = await auth();
+  if (!session?.user?.associateNumber) return [];
+  const allVales = await getValesFromDb(session.user.associateNumber);
+  return allVales;
+}
+
+export async function getValeByFolio(folio: string) {
+  return await findValeByFolio(folio);
+}
+
+const API_BASE_URL = process.env.API_BASE_URL; 
+
+export async function sendValeOtp(associateId?: string) {
+    /*const session = await auth();
+    if (!session?.user?.associateNumber) {
+        return { success: false, message: 'No se pudo autenticar a la asociada.' };
+    }*/
+    const session = await auth();
+    const idToSearch = associateId || session?.user?.associateNumber;
+    
+    if (!idToSearch) {
+        return { success: false, message: 'No se pudo identificar a la asociada.' };
+    }
+    
+    /*const associate = await findUserByAssociateNumber(session.user.associateNumber);
+    if (!associate?.phone || !associate.associateNumber || !associate.name) {
+        return { success: false, message: 'Faltan datos críticos (teléfono, ID de préstamo o ID de usuario) de la asociada.' };
+    }*/
+    const associate = await findUserByAssociateNumber(idToSearch);
+
+    if (!associate?.phone || !associate.name) {
+        return { success: false, message: 'Faltan datos críticos en la base de datos.' };
+    }
+    
+    const requestBody = {
+        ID_PRESTAMO: associate.ID_PRESTAMO || idToSearch,
+        ID_USUARIO: 1703,
+        NO_CELULAR: associate.phone,
+        NOMBRE_CLIENTE: associate.name
+    };
+
+    console.log(`[API Call] Iniciando envío de OTP al endpoint: ${API_BASE_URL}/AppPG/sms/send`);
+
+    try {
+        const response = await fetch(`${API_BASE_URL}sms/send`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            console.log(`[API Response] SMS enviado y registrado. Mensaje: ${data.message}`);
+            return { success: true, message: `Se ha enviado un código de verificación a tu teléfono registrado.` };
+        } else {
+            console.error('API C# Error:', data.message || data.error);
+            return { success: false, message: data.message || 'Error desconocido al solicitar el código de verificación.' };
+        }
+
+    } catch (error) {
+        console.error('Failed to call C# API:', error);
+        return { success: false, message: 'Ocurrió un error de red al contactar el servicio de verificación.' };
+    }
+}
+
+
+export async function signValeWithOtp(prevState: any, formData: FormData) {
+
+    const SignValeSchema = z.object({
+        folio: z.string().min(1, 'El folio es requerido.'),
+        otp: z.string().length(6, 'El código debe tener 6 dígitos.'),
+        nip: z.string().min(4, 'El NIP debe tener al menos 4 dígitos.'),
+    });
+
+    const validatedFields = SignValeSchema.safeParse({
+        folio: formData.get('folio'),
+        otp: formData.get('otp'),
+        nip: formData.get('nip'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            success: false,
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Error de validación. Revisa los campos.',
+        };
+    }
+    
+    const { folio, otp, nip } = validatedFields.data;
+    
+    const session = await auth();
+    if (!session?.user?.associateNumber) {
+        return { success: false, message: 'No se pudo autenticar a la asociada.' };
+    }
+    
+    const associate = await findUserByAssociateNumber(session.user.associateNumber);
+    if (!associate) {
+        return { success: false, message: 'No se encontraron los datos de la asociada.' };
+    }
+
+
+    try {
+      const associateNumber = associate.associateNumber;
+
+        const otpResponse = await fetch(`${API_BASE_URL}validarotp/${associateNumber}`);
+        
+        if (!otpResponse.ok) {
+            const errorData = await otpResponse.json();
+            return {
+                success: false,
+                message: errorData.message || 'Error al obtener el código de la BD. Intente reenviar el SMS.',
+            };
+        }
+
+        const otpData = await otpResponse.json(); 
+        const expectedOtp = otpData.codigo;
+
+        if (otp !== expectedOtp) {
+            return {
+                success: false,
+                message: 'El código de verificación es incorrecto.',
+            };
+        }
+
+        const nipsMatch = nip === associate.nip;
+
+        if (!nipsMatch) {
+            return {
+                success: false,
+                message: 'El NIP ingresado es incorrecto.',
+            };
+        }
+
+        const updated = await updateValeStatusInDb(folio, 'FIRMADO');
+        if (updated) {
+            revalidatePath('/');
+            revalidatePath(`/sign/${folio}`);
+            revalidatePath('/vales');
+            return { success: true, message: '¡Vale firmado exitosamente con doble verificación!' };
+        }
+        return { success: false, message: 'No se pudo actualizar el estado del vale.' };
+
+    } catch (error) {
+        console.error('Error during vale signing:', error);
+        return { success: false, message: 'Ocurrió un error inesperado al firmar el vale.' };
+    }
+}
+
+export async function verifyAssociateIdentity(data: { associateId: string, phoneE164: string }) {
+    try {
+        const user = await findUserByAssociateNumber(data.associateId);
+        
+        if (!user) {
+            return { success: false, message: 'El número de asociada no fue encontrado.' };
+        }
+        
+        const userPhone = user.phone.replace(/\D/g, '');
+        const providedPhone = data.phoneE164.replace(/\D/g, '');
+
+        if (userPhone !== providedPhone) {
+            return { success: false, message: 'El número de teléfono no coincide con el registrado para esta asociada.' };
+        }
+
+        return { success: true, message: 'Identidad verificada exitosamente.' };
+
+    } catch (error) {
+        console.error('Error during identity verification:', error);
+        return { success: false, message: 'Ocurrió un error inesperado al verificar la identidad.' };
+    }
+}
+
+
+export async function cancelVale(prevState: any, formData: FormData) {
+    const CancelValeSchema = z.object({
+        folio: z.string().min(1, 'El folio es requerido.'),
+        nip: z.string().min(4, 'El NIP debe tener al menos 4 dígitos.'),
+    });
+
+    const validatedFields = CancelValeSchema.safeParse({
+        folio: formData.get('folio'),
+        nip: formData.get('nip'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            success: false,
+            message: 'Datos inválidos.',
+        };
+    }
+
+    const { folio, nip } = validatedFields.data;
+
+    const session = await auth();
+    if (!session?.user?.associateNumber) {
+        return { success: false, message: 'No se pudo autenticar a la asociada.' };
+    }
+    
+    const associate = await findUserByAssociateNumber(session.user.associateNumber);
+    if (!associate) {
+        return { success: false, message: 'No se encontraron los datos de la asociada.' };
+    }
+
+    const nipsMatch = nip === associate.nip;
+
+    if (!nipsMatch) {
+        return {
+            success: false,
+            message: 'El NIP ingresado es incorrecto.',
+        };
+    }
+
+    try {
+        const deleted = await deleteValeByFolio(folio);
+        if (deleted) {
+            revalidatePath('/');
+            revalidatePath('/vales');
+            revalidatePath(`/vales/${folio}`); 
+            revalidatePath(`/sign/${folio}`);
+            return { success: true, message: 'Vale cancelado exitosamente.' };
+        }
+        return { success: false, message: 'No se pudo encontrar el vale para cancelar.' };
+    } catch (error) {
+        console.error('Error cancelling vale:', error);
+        return { success: false, message: 'Ocurrió un error al cancelar el vale.' };
+    }
+}
+
+
+export async function getClientByCurp(curp: string) {
+    const result = await findClientByCurp(curp);
+    return result;
+}
+
+// ==================================================================
+// --- Funciones para el flujo de Restablecimiento de NIP ---
+// ==================================================================
+
+/**
+ * Busca a un usuario por número de asociada y fecha de nacimiento, y devuelve el teléfono ofuscado.
+ * @param associateId - El número de asociada a buscar.
+ * @param birthDate - La fecha de nacimiento del usuario en formato 'yyyy-MM-dd'.
+ * @returns El número de teléfono ofuscado (ej. "+52******1234") o null si no se encuentra.
+ */
+export async function getMaskedPhoneForReset(associateId: string, birthDate: string): Promise<string | null> {
+  console.log(`Buscando teléfono para asociada: ${associateId} con fecha de nacimiento: ${birthDate}`);
+  
+  // SIMULACIÓN: Devuelve siempre un número para pruebas de UI.
+  // En un futuro, aquí se validaría la fecha de nacimiento contra la base de datos.
+  //if (!associateId || !birthDate) {
+    //  return null;
+  //}
+ // return '+52******5797';
+  
+  
+  // --- LÓGICA REAL (COMENTADA PARA PRUEBAS) ---
+  try {
+    const user = await findUserByAssociateNumber(associateId);
+    
+    // Suponiendo que `user.birthDate` está en un formato comparable a 'yyyy-MM-dd'
+    // Puede que necesites ajustar el formato de `user.birthDate` antes de comparar.
+    if (user && user.phone && user.birthDate === birthDate) {
+      const phoneString = user.phone.toString();
+
+      if (phoneString.startsWith('+52') && phoneString.length === 13) {
+          const lastFour = phoneString.slice(-4);
+          const masked = `+52******${lastFour}`;
+          console.log(`Teléfono encontrado y ofuscado: ${masked}`);
+          return masked;
+      } else {
+          const phoneDigits = phoneString.replace(/\D/g, '');
+          if (phoneDigits.length > 4) {
+              const lastFour = phoneDigits.slice(-4);
+              return `******${lastFour}`;
+          }
+          return '******';
+      }
+    }
+    console.log(`No se encontró una cuenta para la asociada ${associateId} con esa fecha de nacimiento.`);
+    return null;
+  } catch (error) {
+    console.error('Error en getMaskedPhoneForReset:', error);
+    throw new Error('No se pudo verificar la información de la asociada.');
+  }
+  
+}
+
+/**
+ * Genera y envía un código OTP para el restablecimiento del NIP.
+ * @param associateId - El número de asociada que solicita el OTP.
+ */
+export async function requestNipResetOtp(associateId: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const user = await findUserByAssociateNumber(associateId);
+    if (!user || !user.phone) {
+      // SIMULACIÓN: Finge éxito aunque no se encuentre el usuario para permitir pruebas de UI.
+      console.log(`(Simulado) No se encontró usuario ${associateId}, pero se continúa para pruebas.`);
+    } else {
+       console.log(`(Simulado) Enviando OTP a ${user.phone}`);
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutos
+
+    await sendValeOtp(associateId);
+    
+    console.log(`(Simulado) OTP para ${associateId} es: ${otp}`);
+
+    return { success: true, message: 'Código OTP enviado.' };
+  } catch (error) {
+    console.error('Error en requestNipResetOtp:', error);
+    return { success: false, message: 'No se pudo enviar el código OTP.' };
+  }
+}
+
+export async function sendNipOtp(associateId?: string) {
+    /*const session = await auth();
+    if (!session?.user?.associateNumber) {
+        return { success: false, message: 'No se pudo autenticar a la asociada.' };
+    }*/
+    const session = await auth();
+    const idToSearch = associateId || session?.user?.associateNumber;
+    
+    if (!idToSearch) {
+        return { success: false, message: 'No se pudo identificar a la asociada para el envío.' };
+     }  
+    
+    /*const associate = await findUserByAssociateNumber(session.user.associateNumber);
+    if (!associate?.phone || !associate.associateNumber || !associate.name) {
+        return { success: false, message: 'Faltan datos críticos (teléfono, ID de préstamo o ID de usuario) de la asociada.' };
+    }*/
+    const associate = await findUserByAssociateNumber(idToSearch);
+
+    if (!associate?.phone || !associate.name) {
+        return { success: false, message: 'Faltan datos de contacto (teléfono o nombre) en la base de datos.' };
+    }
+
+    const requestBody = {
+        ID_PRESTAMO: associate.associateNumber,
+        ID_USUARIO: 1703,
+        NO_CELULAR: associate.phone,
+        NOMBRE_CLIENTE: associate.name
+    };
+
+    try {
+        const response = await fetch(`${API_BASE_URL}sms/sendNIP`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            console.log(`[API Response] SMS enviado y registrado. Mensaje: ${data.message}`);
+            return { success: true, message: `Se ha enviado uel nuevo NIP a tu teléfono registrado.` };
+        } else {
+            console.error('API C# Error:', data.message || data.error);
+            return { success: false, message: data.message || 'Error desconocido al solicitar el NIP.' };
+        }
+
+    } catch (error) {
+        console.error('Failed to call C# API:', error);
+        return { success: false, message: 'Ocurrió un error de red al contactar el servicio de verificación.' };
+    }
+}
+
+/**
+ * Verifica el OTP y, si es correcto, restablece el NIP del usuario.
+ * @param associateId - El número de asociada.
+ * @param otp - El código OTP ingresado por el usuario.
+ */
+export async function verifyOtpAndResetNip(associateId: string, otp: string): Promise<{ success: boolean; message: string }> {
+  try {
+    //const storedOtpData = await getStoredOtpForReset(associateId);
+
+        const otpResponse = await fetch(`${API_BASE_URL}validarotp/${associateId}`);
+        
+        if (!otpResponse.ok) {
+            const errorData = await otpResponse.json();
+            return {
+                success: false,
+                message: errorData.message || 'Error al obtener el código de la BD. Intente reenviar el SMS.',
+            };
+        }
+
+        const otpData = await otpResponse.json(); 
+        const expectedOtp = otpData.codigo;
+
+        if (otp !== expectedOtp) {
+            return {
+                success: false,
+                message: 'El código de verificación es incorrecto.',
+            };
+        }
+
+    /*if (!storedOtpData || storedOtpData.otp !== otp) {
+      return { success: false, message: 'El código OTP es incorrecto.' };
+    }*/
+
+    /*if (new Date() > new Date(storedOtpData.expiresAt)) {
+      return { success: false, message: 'El código OTP ha expirado.' };
+    }*/
+    
+    //const newNip = Math.floor(1000 + Math.random() * 9000).toString();
+
+    await sendNipOtp(associateId);
+    
+    /*const user = await findUserByAssociateNumber(associateId);
+    if(user && user.phone){
+        console.log(`(Simulado) Enviando nuevo NIP a ${user.phone}`);
+    }*/
+
+    return { success: true, message: 'NIP restablecido con éxito.' };
+  } catch (error) {
+    console.error('Error en verifyOtpAndResetNip:', error);
+    return { success: false, message: 'Ocurrió un error al verificar el código.' };
+  }
+}
