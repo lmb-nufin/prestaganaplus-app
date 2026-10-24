@@ -1,0 +1,62 @@
+# Especificación: Préstamo Personal para asociadas (PrestaGana+)
+
+**Objetivo:** que la asociada pueda generar un vale de préstamo personal a su nombre. El flujo es igual al de cliente existente, pero en una sección visualmente distinta.
+
+## Reglas de negocio
+
+1. **Montos:** de $4,500 a $8,500 en saltos de $500, igual que cliente existente. **Plazos:** 8, 10, 12 y 14 quincenas.
+2. **No sale de su línea de crédito.** No descuenta `available` ni suma a `placed`.
+3. **Solo un préstamo personal activo a la vez.** Un vale personal en proceso (`PENDIENTE` o `FIRMADO`) o con saldo bloquea uno nuevo.
+4. **Elegibilidad:** `paymentStatus.status === "Al Día"` y al menos 3 meses desde `activationDate`.
+5. **Cobranza:** se cobra igual que los demás, en su relación de cobro y a su nombre.
+6. **Firma:** la misma que hoy, con OTP + NIP. El vale digital y el WhatsApp se mandan a su propio teléfono.
+
+## Cambios en la API .NET (backend)
+
+- Nuevo `GET prestamoPersonal/{associateNumber}`, que responde:
+
+  ```json
+  { "cliente": { "curp": "...", "firstName": "...", "lastNameP": "...", "lastNameM": "...",
+                 "birthDate": "1990-01-15", "phone": "+52...", "id_cliente": "..." },
+    "prestamoActivo": false, "folioActivo": null }
+  ```
+
+- `POST vales` acepta `tipoVale: "PERSONAL" | "CLIENTE"` (default `CLIENTE`). Con `PERSONAL`, la API debe validar en el servidor la regla 3, la regla 4 y el monto y plazo permitidos, y responder 4xx con mensaje si alguno falla. Tampoco descuenta la línea.
+- `GET valesDashboard/{n}` y `GET vales/{folio}` regresan `tipoVale`.
+- `dashboardData` no cuenta los vales personales en `creditLine.placed`.
+
+## Cambios en la app (Next.js)
+
+- `src/lib/types.ts`: agregar `tipoVale?: 'CLIENTE' | 'PERSONAL'` a `Vale`, y los tipos de la respuesta de `prestamoPersonal`.
+- `src/lib/data.ts`: agregar `getPersonalLoanInfo(associateNumber)` contra `GET prestamoPersonal/{n}`, con `cache: 'no-store'`. Si la API falla, regresa `null`.
+- Nuevo `src/lib/personal-loan.ts`, que solo corre en el servidor:
+  - Constantes de montos y plazos.
+  - `getPersonalLoanEligibility(associateNumber)`, que combina `getAssociateDashboard` (estatus y antigüedad), `getPersonalLoanInfo` (`prestamoActivo`) y `getVales` (cualquier vale `PERSONAL` en `PENDIENTE` o `FIRMADO`).
+  - Fail-closed: si la API no responde, no es elegible y muestra el mensaje "Servicio no disponible".
+- `src/app/actions.ts`, nueva acción `createPersonalLoanVale`:
+  - Valida la sesión y vuelve a evaluar la elegibilidad.
+  - Valida que monto y plazo estén en las listas permitidas.
+  - Toma nombre, fecha de nacimiento, teléfono e `id_cliente` de la API, nunca del formulario.
+  - Hace `POST vales` con `tipoVale: "PERSONAL"` y los mismos datos de auditoría (dispositivo y GPS), y regresa el folio.
+- Nueva ruta `src/app/prestamo-personal/page.tsx`, un server component:
+  - Si no es elegible, muestra el motivo (atrasada, antigüedad menor a 3 meses, o "ya tienes un préstamo activo" con liga al folio).
+  - Si es elegible, muestra sus datos precargados y no editables, más los selects de monto y plazo y el botón Confirmar. Al confirmar redirige a `/sign/{folio}`, que es la firma de siempre.
+  - Usa un color propio (por ejemplo índigo) para que no se confunda con "Vale Nuevo".
+- **Entradas a la sección:** una tarjeta "Préstamo Personal" en `distributor-dashboard.tsx` que muestre el estado (disponible o no y por qué) y un ítem en el menú de `header.tsx`. La barra inferior no se toca.
+- **Lista de vales y detalle:** badge "Personal" en `vales-dashboard.tsx` y `sign-page-content.tsx`. En `digital-vale.tsx`, para el tipo `PERSONAL`, cambiar el texto del WhatsApp ("Tu préstamo personal PrestaGana+…"); el teléfono ya es el de ella.
+- **Corregir de paso el corrimiento de fechas:** crear un helper `parseDateOnly()` que arme la fecha local a partir de `YYYY-MM-DD`. Usarlo en lugar de `new Date(birthDate)` en `sign-page-content.tsx` y `vale-creation-form.tsx`. Sin esto, en México las fechas se muestran y se envían con un día menos.
+
+## Pruebas mínimas
+
+- Asociada elegible: crea el préstamo, firma con OTP + NIP y el préstamo aparece en la lista con badge "Personal". Su línea disponible no cambia.
+- Con uno `PENDIENTE` o `FIRMADO`, el segundo queda bloqueado en la UI y en la acción del servidor (prueba con dos pestañas).
+- Asociada "Atrasada" o con menos de 3 meses: bloqueada, con el motivo visible.
+- Un monto fuera de rango enviado a mano al server action se rechaza.
+- API caída: la sección dice "no disponible" y no truena.
+- Sin regresiones en los vales de cliente nuevo y existente.
+
+## Riesgos
+
+1. La regla de uno activo y la elegibilidad tienen que vivir en la API .NET. Lo que haga la app es solo UX; sin la validación en el backend, se pueden sacar dos préstamos.
+2. Hasta que exista `GET prestamoPersonal`, la sección debe quedar bloqueada (fail-closed), no abierta.
+3. Hay que revisar con legal el contrato o pagaré del préstamo a la asociada antes de salir a producción.
