@@ -11,7 +11,7 @@ Esta es una aplicación web construida con **Next.js (App Router)** y **TypeScri
 - **Lenguaje**: TypeScript
 - **UI**: React, ShadCN UI, TailwindCSS, Lucide Icons
 - **Autenticación**: NextAuth.js v5 (Beta) con el proveedor `credentials`.
-- **Base de Datos (Actual)**: Utiliza una **base de datos simulada en memoria** (`src/lib/data.ts`). **Este es el punto más crítico a modificar.**
+- **Datos (Actual)**: Por defecto usa una **API simulada en memoria** (`src/lib/api.ts`). Para conectarse a la API real, definir `USE_REAL_API=true` y `API_BASE_URL`. Acceso de prueba: asociada `1000001`, NIP `1234`; el código OTP siempre es `123456`.
 - **Despliegue**: Preparada para desplegarse en **Vercel**.
 
 ## 2. Funcionalidades Implementadas (con datos de prueba)

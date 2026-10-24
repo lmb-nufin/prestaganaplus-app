@@ -3,6 +3,7 @@
 
 import { z } from 'zod';
 import { addVale, findValeByFolio, getVales as getValesFromDb, updateValeStatus as updateValeStatusInDb, findUserByAssociateNumber, deleteValeByFolio, findClientByCurp, createUser, updateUserNip, storeOtpForReset, getStoredOtpForReset } from '@/lib/data';
+import { apiFetch } from '@/lib/api';
 import { revalidatePath } from 'next/cache';
 import { signIn, signOut, auth } from '@/lib/auth';
 import { AuthError } from 'next-auth';
@@ -164,7 +165,7 @@ export async function getValeByFolio(folio: string) {
   return await findValeByFolio(folio);
 }
 
-const API_BASE_URL = process.env.API_BASE_URL; 
+
 
 export async function sendValeOtp(associateId?: string) {
     /*const session = await auth();
@@ -195,10 +196,10 @@ export async function sendValeOtp(associateId?: string) {
         NOMBRE_CLIENTE: associate.name
     };
 
-    console.log(`[API Call] Iniciando envío de OTP al endpoint: ${API_BASE_URL}/AppPG/sms/send`);
+    console.log(`[API Call] Iniciando envío de OTP: sms/send`);
 
     try {
-        const response = await fetch(`${API_BASE_URL}sms/send`, {
+        const response = await apiFetch(`sms/send`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -261,7 +262,7 @@ export async function signValeWithOtp(prevState: any, formData: FormData) {
     try {
       const associateNumber = associate.associateNumber;
 
-        const otpResponse = await fetch(`${API_BASE_URL}validarotp/${associateNumber}`);
+        const otpResponse = await apiFetch(`validarotp/${associateNumber}`);
         
         if (!otpResponse.ok) {
             const errorData = await otpResponse.json();
@@ -501,7 +502,7 @@ export async function sendNipOtp(associateId?: string) {
     };
 
     try {
-        const response = await fetch(`${API_BASE_URL}sms/sendNIP`, {
+        const response = await apiFetch(`sms/sendNIP`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -534,7 +535,7 @@ export async function verifyOtpAndResetNip(associateId: string, otp: string): Pr
   try {
     //const storedOtpData = await getStoredOtpForReset(associateId);
 
-        const otpResponse = await fetch(`${API_BASE_URL}validarotp/${associateId}`);
+        const otpResponse = await apiFetch(`validarotp/${associateId}`);
         
         if (!otpResponse.ok) {
             const errorData = await otpResponse.json();

@@ -1,11 +1,11 @@
 
 import type { Vale, ExistingClient, NipResetOtp } from './types';
 
-const API_BASE_URL = process.env.API_BASE_URL;
+import { apiFetch } from './api';
 
 export const findUserByAssociateNumber = async (associateNumber: string) => {
   try {
-    const response = await fetch(`${API_BASE_URL}dashboard/${associateNumber}`);
+    const response = await apiFetch(`dashboard/${associateNumber}`);
     if (!response.ok) {
         console.error(`API Error: Failed to find user ${associateNumber}`, response.status, await response.text());
         return null;
@@ -21,7 +21,7 @@ export const findUserByAssociateNumber = async (associateNumber: string) => {
 
 export const getVales = async (associateNumber: string): Promise<Vale[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}valesDashboard/${associateNumber}`);
+    const response = await apiFetch(`valesDashboard/${associateNumber}`);
     if (!response.ok) {
         console.error(`API Error: Failed to get vales for ${associateNumber}`, response.status, await response.text());
         return [];
@@ -36,7 +36,7 @@ export const getVales = async (associateNumber: string): Promise<Vale[]> => {
 
 export const addVale = async (valeData: Omit<Vale, 'folio' | 'status' | 'createdAt'>): Promise<Vale | null> => {
     try {
-        const response = await fetch(`${API_BASE_URL}vales`, {
+        const response = await apiFetch(`vales`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(valeData)
@@ -57,7 +57,7 @@ export const addVale = async (valeData: Omit<Vale, 'folio' | 'status' | 'created
 
 export const findValeByFolio = async (folio: string): Promise<Vale | undefined> => {
     try {
-      const response = await fetch(`${API_BASE_URL}vales/${folio}`);
+      const response = await apiFetch(`vales/${folio}`);
       if (!response.ok) {
         console.error(`API Error: Failed to find vale ${folio}`, response.status, await response.text());
         return undefined;
@@ -71,7 +71,7 @@ export const findValeByFolio = async (folio: string): Promise<Vale | undefined> 
 
 export const updateValeStatus = async (folio: string, status: 'PENDIENTE' | 'FIRMADO' | 'CANJEADO'): Promise<Vale | null> => {
     try {
-        const response = await fetch(`${API_BASE_URL}vales/${folio}/status`, {
+        const response = await apiFetch(`vales/${folio}/status`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status })
@@ -89,7 +89,7 @@ export const updateValeStatus = async (folio: string, status: 'PENDIENTE' | 'FIR
 
 export const deleteValeByFolio = async (folio: string): Promise<boolean> => {
     try {
-        const response = await fetch(`${API_BASE_URL}vales/${folio}`, {
+        const response = await apiFetch(`vales/${folio}`, {
             method: 'DELETE'
         });
         return response.ok;
@@ -101,7 +101,7 @@ export const deleteValeByFolio = async (folio: string): Promise<boolean> => {
 
 export const getAssociateDashboard = async (associateNumber: string) => {
     try {
-        const response = await fetch(`${API_BASE_URL}dashboardData/${associateNumber}`);
+        const response = await apiFetch(`dashboardData/${associateNumber}`);
         if (!response.ok) {
             console.error(`API Error: Failed to get dashboard for ${associateNumber}`, response.status, await response.text());
             return null;
@@ -116,7 +116,7 @@ export const getAssociateDashboard = async (associateNumber: string) => {
 export const findClientByCurp = async (curp: string): Promise<{ success: boolean; data: ExistingClient | null; message: string }> => {
     try {
             // Aseguramos que la URL sea correcta (e.g., .../AppPG/clients/{curp})
-     const response = await fetch(`${API_BASE_URL}clients/${curp}`, {
+     const response = await apiFetch(`clients/${curp}`, {
                 cache: 'no-store' // Aseguramos que la búsqueda es en tiempo real
             });
     
@@ -170,7 +170,7 @@ export const findClientByCurp = async (curp: string): Promise<{ success: boolean
 
 export const createUser = async (userData: any) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/users`, {
+        const response = await apiFetch(`/users`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(userData)
@@ -199,7 +199,7 @@ export const storeOtpForReset = async (associateId: string, otp: string, expires
   // En una implementación real, esto sería una llamada a la API:
   /*
   try {
-    const response = await fetch(`${API_BASE_URL}/users/nip-reset-otp`, {
+    const response = await apiFetch(`/users/nip-reset-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ associateId, otp, expiresAt: expiresAt.toISOString() })
@@ -224,7 +224,7 @@ export const storeOtpForReset = async (associateId: string, otp: string, expires
   // En una implementación real, esto sería una llamada a la API:
   
   try {
-    const response = await fetch(`${API_BASE_URL}/validarotp/${associateId}`);
+    const response = await apiFetch(`/validarotp/${associateId}`);
     if (response.status === 404) {
       return null;
     }
@@ -249,7 +249,7 @@ export const storeOtpForReset = async (associateId: string, otp: string, expires
 */
 export const getStoredOtpForReset = async (associateId: string): Promise<NipResetOtp | null> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/validarotp/${associateId}`);
+    const response = await apiFetch(`/validarotp/${associateId}`);
     
     if (response.status === 404) return null;
     if (!response.ok) throw new Error('Failed to get stored OTP');
@@ -278,7 +278,7 @@ export const updateUserNip = async (associateId: string, newNip: string): Promis
   // En una implementación real, esto sería una llamada a la API:
   /*
   try {
-    const response = await fetch(`${API_BASE_URL}/users/nip`, {
+    const response = await apiFetch(`/users/nip`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ associateId, newNip })
