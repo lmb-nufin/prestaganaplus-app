@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { login } from './helpers';
 
 const TRACKER_CASES = [
-  { associate: '1000007', step: 'Solicitado', todo: 'pagar el enganche' },
+  { associate: '1000007', step: 'Solicitado', todo: 'Transfiere el enganche' },
   { associate: '1000008', step: 'Enganche confirmado', todo: 'Recibimos tu enganche' },
   { associate: '1000009', step: 'En preparación', todo: 'Estamos configurando' },
   { associate: '1000010', step: 'Listo para recoger', todo: 'Recógelo en tu sucursal' },

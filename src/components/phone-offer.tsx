@@ -3,7 +3,7 @@
 import { useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import Link from 'next/link';
-import { AlertCircle, CheckCircle2, Info, Loader2, ShieldCheck, Smartphone } from 'lucide-react';
+import { AlertCircle, Check, CheckCircle2, Copy, Info, Loader2, ShieldCheck, Smartphone } from 'lucide-react';
 
 import { requestPhone } from '@/app/actions';
 import type { PhoneOfferOption } from '@/lib/types';
@@ -22,11 +22,11 @@ type State = {
 };
 const initialState: State = { message: '' };
 
-export function PhoneOfferView({ option }: { option: PhoneOfferOption }) {
+export function PhoneOfferView({ option, stpClabe }: { option: PhoneOfferOption; stpClabe?: string }) {
   const [state, formAction] = useActionState(requestPhone, initialState);
 
   if (state.success && state.folio) {
-    return <RequestConfirmation folio={state.folio} />;
+    return <RequestConfirmation folio={state.folio} downPayment={option.offer?.engancheMonto ?? 0} stpClabe={stpClabe} />;
   }
 
   if (!option.available) {
@@ -96,7 +96,7 @@ function OfferForm({
           </div>
 
           <div className="rounded-lg border-2 border-indigo-300 bg-indigo-50 p-3 text-center">
-            <p className="text-xs text-indigo-700">Enganche (se paga en sucursal)</p>
+            <p className="text-xs text-indigo-700">Enganche (por transferencia a la CLABE de tu línea)</p>
             <p className="font-headline text-2xl font-bold text-indigo-900" data-testid="phone-down-payment">
               {formatCurrency(offer.engancheMonto)}
             </p>
@@ -191,7 +191,16 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   );
 }
 
-function RequestConfirmation({ folio }: { folio: string }) {
+function RequestConfirmation({ folio, downPayment, stpClabe }: { folio: string; downPayment: number; stpClabe?: string }) {
+  const [copied, setCopied] = useState(false);
+  const copyClabe = async () => {
+    if (!stpClabe) return;
+    try {
+      await navigator.clipboard.writeText(stpClabe);
+      setCopied(true);
+    } catch {}
+  };
+
   return (
     <Card className="shadow-lg" data-testid="phone-request-confirmation">
       <CardHeader className="items-center text-center">
@@ -200,7 +209,24 @@ function RequestConfirmation({ folio }: { folio: string }) {
         <CardDescription>Folio {folio}</CardDescription>
       </CardHeader>
       <CardContent className="text-center text-sm">
-        <p className="font-semibold">Acude a tu sucursal a pagar el enganche y firmar.</p>
+        <p className="font-semibold">Transfiere el enganche a la CLABE de tu línea. Se registra automáticamente.</p>
+        <div className="mt-3 rounded-lg border bg-muted/40 p-3 text-left text-xs" data-testid="phone-down-payment-transfer">
+          <p className="flex justify-between">
+            <span className="text-muted-foreground">Monto</span>
+            <span className="font-semibold">{formatCurrency(downPayment)}</span>
+          </p>
+          {stpClabe ? (
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <span className="text-muted-foreground">CLABE (STP)</span>
+              <span className="font-mono font-semibold" data-testid="phone-clabe">{stpClabe}</span>
+              <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={copyClabe} aria-label="Copiar CLABE">
+                {copied ? <Check className="h-4 w-4 text-accent" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          ) : (
+            <p className="mt-1 text-muted-foreground">Es la misma CLABE con la que pagas tu línea (Dashboard → Pagar Ahora).</p>
+          )}
+        </div>
         <p className="mt-2 text-xs text-muted-foreground">Puedes seguir el avance de tu equipo desde el Dashboard.</p>
       </CardContent>
       <CardFooter>

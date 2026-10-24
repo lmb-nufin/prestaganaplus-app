@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 const STEPS: { status: Exclude<PhoneRequestStatus, 'CANCELADO'>; label: string; todo: string }[] = [
-  { status: 'SOLICITADO', label: 'Solicitado', todo: 'Acude a tu sucursal a pagar el enganche y firmar.' },
+  { status: 'SOLICITADO', label: 'Solicitado', todo: 'Transfiere el enganche a la CLABE de tu línea. Se registra automáticamente.' },
   { status: 'ENGANCHE_CONFIRMADO', label: 'Enganche confirmado', todo: 'Recibimos tu enganche. Estamos apartando tu equipo.' },
   { status: 'EN_PREPARACION', label: 'En preparación', todo: 'Estamos configurando tu Samsung PrestaGana. Te avisaremos cuando esté listo.' },
   { status: 'LISTO_PARA_RECOGER', label: 'Listo para recoger', todo: 'Tu equipo está listo. Recógelo en tu sucursal con tu INE.' },

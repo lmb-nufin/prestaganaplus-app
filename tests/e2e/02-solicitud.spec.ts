@@ -14,7 +14,9 @@ test.describe('Solicitud del teléfono', () => {
     await page.getByLabel(/Acepto las condiciones/).check();
     await page.getByRole('button', { name: 'Solicitar' }).click();
     const confirmation = page.getByTestId('phone-request-confirmation');
-    await expect(confirmation).toContainText('Acude a tu sucursal a pagar el enganche y firmar.');
+    await expect(confirmation).toContainText('Transfiere el enganche a la CLABE de tu línea. Se registra automáticamente.');
+    await expect(confirmation.getByTestId('phone-down-payment-transfer')).toContainText('$225.00');
+    await expect(confirmation.getByTestId('phone-clabe')).toHaveText(/^\d{18}$/);
     await expect(confirmation).toContainText(/Folio TEL-1000006-[A-Z0-9]{6}/);
 
     await second.getByTestId('plan-12').click();
@@ -27,7 +29,7 @@ test.describe('Solicitud del teléfono', () => {
     const tracker = page.getByTestId('phone-tracker');
     await expect(tracker).toBeVisible();
     await expect(tracker.getByTestId('phone-tracker-current')).toHaveText(/Solicitado/);
-    await expect(tracker.getByTestId('phone-tracker-todo')).toContainText('Acude a tu sucursal a pagar el enganche y firmar.');
+    await expect(tracker.getByTestId('phone-tracker-todo')).toContainText('Transfiere el enganche a la CLABE de tu línea. Se registra automáticamente.');
 
     await page.goto('/vales/nuevo');
     await page.getByRole('button', { name: /Préstamo Personal/ }).click();

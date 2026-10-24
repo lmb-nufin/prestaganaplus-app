@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 
 import { auth } from '@/lib/auth';
+import { getAssociateDashboard } from '@/lib/data';
 import { getPhoneOfferOption } from '@/lib/phone';
 import { PhoneOfferView } from '@/components/phone-offer';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,12 @@ export default async function PhoneOfferPage() {
   }
 
   // Solo la UX: requestPhone vuelve a validar todo antes de crear la solicitud.
-  const option = await getPhoneOfferOption(associateNumber);
+  const [option, dashboard] = await Promise.all([
+    getPhoneOfferOption(associateNumber),
+    getAssociateDashboard(associateNumber),
+  ]);
+  // El enganche se transfiere a la misma CLABE de la línea; el sistema lo registra solo.
+  const stpClabe: string | undefined = dashboard?.paymentReferences?.stpClabe || undefined;
 
   return (
     <div className="flex min-h-screen flex-col bg-indigo-50/40">
@@ -31,7 +37,7 @@ export default async function PhoneOfferPage() {
       </header>
       <main className="w-full flex-grow">
         <div className="mx-auto w-full max-w-md px-2 py-4">
-          <PhoneOfferView option={option} />
+          <PhoneOfferView option={option} stpClabe={stpClabe} />
         </div>
       </main>
     </div>
