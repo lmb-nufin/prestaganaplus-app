@@ -72,5 +72,6 @@ Oferta visible o deshabilitada según elegibilidad · comparativo con datos de l
 - **Estado del teléfono no disponible = emisión bloqueada.** Si `GET telefono/estado` falla, las server actions de emisión rechazan con "Servicio no disponible" en lugar de suponer que no hay restricción. Pendiente de validar: afecta a todas las asociadas cuando el servicio cae.
 - **Cancelar un vale también exige firma del equipo** con la operación `CANCELAR_VALE` (extensión del enum de `dispositivo/desafio`).
 - **Amarre del desafío.** Al verificar, la app manda además `associateNumber`, `operacion`, `folio` y `monto` para que la API confirme que el desafío es de esa operación (extensión del body de `dispositivo/verificar`).
-- **Desglose:** Vales = `paymentStatus.amountDue − telefono.pagoQuincenal` (se asume que `amountDue` ya incluye la cuota del teléfono).
+- **Desglose:** Teléfono = `telefono.pagoQuincenal + mora.monto` (si hay mora) y Vales = `paymentStatus.amountDue − Teléfono`. Se asume que `amountDue` ya incluye la cuota del teléfono y su mora.
+- **Desafío completo:** `FIRMAR_VALE` y `CANCELAR_VALE` exigen folio; `CREAR_VALE` y `PRESTAMO_PERSONAL` exigen monto. La API .NET debe validar lo mismo.
 - **Propiedad del vale:** firmar y cancelar validan que el folio sea de la asociada en sesión.

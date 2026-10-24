@@ -11,7 +11,7 @@ const STORAGE_KEY = 'prestagana-demo-device';
 
 /**
  * Bridge simulado de la miniapp. Solo se monta cuando el servidor corre con DEMO_MODE=true
- * (ver src/app/layout.tsx). Se activa con ?demoDevice=1 y se apaga con ?demoDevice=0;
+ * (ver src/components/demo-bridge-slot.tsx). Se activa con ?demoDevice=1 y se apaga con ?demoDevice=0;
  * la elección se recuerda en la pestaña para que sobreviva la navegación.
  */
 export function DemoDeviceBridge() {

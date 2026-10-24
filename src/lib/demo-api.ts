@@ -325,8 +325,8 @@ const verifyChallenge = (data: any): { valido: boolean; motivo?: string } => {
   if (entry.associateNumber !== data.associateNumber || entry.operacion !== data.operacion) {
     return { valido: false, motivo: 'El desafío no corresponde a esta operación.' };
   }
-  if (entry.folio !== undefined && entry.folio !== data.folio) return { valido: false, motivo: 'El desafío no corresponde a este folio.' };
-  if (entry.monto !== undefined && Number(entry.monto) !== Number(data.monto)) {
+  if ((entry.folio ?? null) !== (data.folio ?? null)) return { valido: false, motivo: 'El desafío no corresponde a este folio.' };
+  if ((entry.monto ?? null) !== (data.monto ?? null) && Number(entry.monto) !== Number(data.monto)) {
     return { valido: false, motivo: 'El desafío no corresponde a este monto.' };
   }
   if (data.deviceId !== DEMO_DEVICE_ID) return { valido: false, motivo: 'Equipo no registrado.' };

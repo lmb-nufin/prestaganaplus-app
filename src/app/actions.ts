@@ -527,6 +527,11 @@ export async function requestDeviceChallenge(
     }
     const folio = typeof datos.folio === 'string' && datos.folio ? datos.folio : undefined;
     const monto = typeof datos.monto === 'number' && Number.isFinite(datos.monto) ? datos.monto : undefined;
+    // El desafío queda amarrado al vale (firmar, cancelar) o al monto (crear).
+    const needsFolio = operacion === 'FIRMAR_VALE' || operacion === 'CANCELAR_VALE';
+    if (needsFolio ? !folio : monto === undefined || monto <= 0) {
+        return { ok: false, message: 'Faltan datos de la operación para firmar con el equipo.' };
+    }
 
     const issuance = await getIssuanceMode(session.user.associateNumber);
     if (issuance.mode === 'BLOQUEADA') return { ok: false, message: issuance.message };
