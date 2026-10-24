@@ -43,6 +43,11 @@ export type PersonalLoanEligibility =
   | { eligible: true; cliente: ExistingClient }
   | { eligible: false; reason: PersonalLoanBlockReason; message: string; folioActivo?: string | null };
 
+// Lo que llega al cliente en Vale Nuevo: solo el estado y el nombre para el diálogo de confirmación.
+export type PersonalLoanOption =
+  | { eligible: true; holderName: string }
+  | { eligible: false; reason: PersonalLoanBlockReason; folioActivo: string | null };
+
 export type NipResetOtp = {
   otp: string;
   //expiresAt: string; // ISO date string

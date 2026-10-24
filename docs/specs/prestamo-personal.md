@@ -38,11 +38,16 @@
   - Valida que monto y plazo estén en las listas permitidas.
   - Toma nombre, fecha de nacimiento, teléfono e `id_cliente` de la API, nunca del formulario.
   - Hace `POST vales` con `tipoVale: "PERSONAL"` y los mismos datos de auditoría (dispositivo y GPS), y regresa el folio.
-- Nueva ruta `src/app/prestamo-personal/page.tsx`, un server component:
-  - Si no es elegible, muestra el motivo (atrasada, antigüedad menor a 3 meses, o "ya tienes un préstamo activo" con liga al folio).
-  - Si es elegible, muestra sus datos precargados y no editables, más los selects de monto y plazo y el botón Confirmar. Al confirmar redirige a `/sign/{folio}`, que es la firma de siempre.
-  - Usa un color propio (por ejemplo índigo) para que no se confunda con "Vale Nuevo".
-- **Entradas a la sección:** una tarjeta "Préstamo Personal" en `distributor-dashboard.tsx` que muestre el estado (disponible o no y por qué) y un ítem en el menú de `header.tsx`. La barra inferior no se toca.
+- **Ubicación: dentro de Vale Nuevo** (`/vales/nuevo`), no en el dashboard ni en el menú:
+  - `src/app/vales/nuevo/page.tsx` es un server component que obtiene la sesión y llama a `getPersonalLoanEligibility`. El flujo de pasos (`choice`, `curp_input`, `form`, `personal`) vive en el client component `new-vale-flow.tsx`, que recibe solo el estado de elegibilidad y el nombre de la asociada.
+  - `new-or-renewed-choice.tsx` tiene una tercera opción "Préstamo Personal" (índigo, ícono HandCoins, "Préstamo a tu nombre, no usa tu línea").
+  - Si es elegible, el paso `personal` muestra el encabezado índigo "Préstamo Personal" ("Un préstamo a tu nombre que no usa tu línea de crédito."), los selects de monto y plazo, el botón Confirmar y un botón "Volver" a la elección. No muestra nombre, fecha de nacimiento ni teléfono.
+  - El diálogo de confirmación dice: "Préstamo personal de $X a N quincenas a nombre de NOMBRE. Se cobrará en tu relación de cobro y no usa tu línea de crédito."
+  - Si no es elegible, la opción aparece deshabilitada con el motivo: "Necesitas estar al día", "Disponible al cumplir 3 meses", "Ya tienes un préstamo activo" (con liga al folio) o "Servicio no disponible".
+  - Al confirmar, `createPersonalLoanVale` vuelve a validar en el servidor y redirige a `/sign/{folio}`.
+  - Los botones "Vale Nuevo" de la barra inferior y de la tarjeta "Línea PrestaGana" siguen llevando a `/vales/nuevo`.
+- **Validación de la respuesta:** `getPersonalLoanInfo` acepta un wrapper `data` opcional y exige el cliente completo y `typeof prestamoActivo === 'boolean'`; si no, regresa `null` (servicio no disponible).
+- **Estatus normalizado:** "Al Día", "Al día" y "AL DIA" cuentan igual (minúsculas, sin acentos); cualquier otro valor bloquea.
 - **Lista de vales y detalle:** badge "Personal" en `vales-dashboard.tsx` y `sign-page-content.tsx`. En `digital-vale.tsx`, para el tipo `PERSONAL`, cambiar el texto del WhatsApp ("Tu préstamo personal PrestaGana+…"); el teléfono ya es el de ella.
 - **Corregir de paso el corrimiento de fechas:** crear un helper `parseDateOnly()` que arme la fecha local a partir de `YYYY-MM-DD`. Usarlo en lugar de `new Date(birthDate)` en `sign-page-content.tsx` y `vale-creation-form.tsx`. Sin esto, en México las fechas se muestran y se envían con un día menos.
 

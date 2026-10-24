@@ -11,6 +11,7 @@ import type { Vale, ExistingClient } from './types';
 //   1000002  Atrasada
 //   1000003  Alta hace menos de 3 meses
 //   1000004  GET prestamoPersonal responde 503 (servicio caído)
+//   1000005  GET prestamoPersonal responde sin prestamoActivo (respuesta mal formada)
 const MOCK_OTP = '123456';
 
 type MockAssociate = {
@@ -28,6 +29,7 @@ type MockAssociate = {
   paymentStatus: { status: string; amountDue: number };
   activationDate: string;
   personalLoanServiceDown?: boolean;
+  personalLoanMalformed?: boolean;
 };
 
 const monthsAgo = (months: number) => {
@@ -78,6 +80,9 @@ const mockAssociates: MockAssociate[] = [
   }),
   makeAssociate('1000004', 'CARMEN', 'DIAZ', 'MORA', '+525500000004', {
     personalLoanServiceDown: true,
+  }),
+  makeAssociate('1000005', 'SOFIA', 'NAVA', 'GIL', '+525500000005', {
+    personalLoanMalformed: true,
   }),
 ];
 
@@ -187,6 +192,7 @@ export const demoFetch = async (path: string, init?: RequestInit): Promise<Respo
       if (!associate) return notFound();
       if (associate.personalLoanServiceDown) return json({ message: 'Servicio no disponible.' }, 503);
       const active = activePersonalVale(id);
+      if (associate.personalLoanMalformed) return json({ cliente: associate.cliente, folioActivo: null });
       return json({ cliente: associate.cliente, prestamoActivo: !!active, folioActivo: active?.folio ?? null });
     }
 

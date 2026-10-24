@@ -9,6 +9,12 @@ export const PERSONAL_LOAN_AMOUNTS = Array.from({ length: (8500 - 4500) / 500 + 
 export const PERSONAL_LOAN_INSTALLMENTS = [8, 10, 12, 14];
 export const PERSONAL_LOAN_MIN_MONTHS = 3;
 
+// "Al Día", "Al día" y "AL DIA" cuentan igual; cualquier otro valor bloquea.
+const normalizeStatus = (status: unknown) =>
+  typeof status === 'string'
+    ? status.normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase().replace(/\s+/g, ' ')
+    : '';
+
 /**
  * Evalúa si la asociada puede sacar un préstamo personal.
  * Es solo para la UX: la API debe volver a validar todo al crear el vale.
@@ -29,7 +35,7 @@ export async function getPersonalLoanEligibility(associateNumber: string): Promi
     };
   }
 
-  if (dashboard.paymentStatus.status !== 'Al Día') {
+  if (normalizeStatus(dashboard.paymentStatus.status) !== 'al dia') {
     return {
       eligible: false,
       reason: 'ATRASADA',

@@ -299,7 +299,12 @@ export const getPersonalLoanInfo = async (associateNumber: string): Promise<Pers
       console.error(`API Error: Failed to get personal loan info for ${associateNumber}`, response.status, await response.text());
       return null;
     }
-    return await response.json();
+    const body = await response.json();
+    const info = parsePersonalLoanInfo(body?.data ?? body);
+    if (!info) {
+      console.error(`API Error: Unexpected personal loan info shape for ${associateNumber}`, body);
+    }
+    return info;
   } catch (error) {
     console.error(`Network error when getting personal loan info for ${associateNumber}:`, error);
     return null;
@@ -335,3 +340,22 @@ export const addPersonalLoanVale = async (
     return { ok: false, message: 'Servicio no disponible. Intenta más tarde.' };
   }
 };
+
+const CLIENTE_FIELDS = ['curp', 'firstName', 'lastNameP', 'lastNameM', 'birthDate', 'phone', 'id_cliente'] as const;
+
+/** Valida la respuesta de prestamoPersonal. Si falta algo, regresa null y la sección queda bloqueada. */
+function parsePersonalLoanInfo(raw: any): PersonalLoanInfo | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const { cliente, prestamoActivo, folioActivo } = raw;
+  if (typeof prestamoActivo !== 'boolean') return null;
+  if (!cliente || typeof cliente !== 'object') return null;
+  const clienteCompleto = CLIENTE_FIELDS.every(
+    (field) => cliente[field] !== undefined && cliente[field] !== null && String(cliente[field]).trim() !== ''
+  );
+  if (!clienteCompleto) return null;
+  return {
+    cliente: Object.fromEntries(CLIENTE_FIELDS.map((field) => [field, String(cliente[field])])) as ExistingClient,
+    prestamoActivo,
+    folioActivo: typeof folioActivo === 'string' && folioActivo ? folioActivo : null,
+  };
+}

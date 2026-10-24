@@ -32,9 +32,11 @@ const initialState: State = { message: '' };
 type PersonalLoanFormProps = {
   amounts: number[];
   installments: number[];
+  // Solo para el diálogo; el servidor toma los datos de la API.
+  holderName: string;
 };
 
-export function PersonalLoanForm({ amounts, installments }: PersonalLoanFormProps) {
+export function PersonalLoanForm({ amounts, installments, holderName }: PersonalLoanFormProps) {
   const [state, formAction] = useActionState(createPersonalLoanVale, initialState);
   const auditData = useAuditData();
   const formRef = useRef<HTMLFormElement>(null);
@@ -102,8 +104,8 @@ export function PersonalLoanForm({ amounts, installments }: PersonalLoanFormProp
           <AlertDialogHeader>
             <AlertDialogTitle className="font-headline">Confirmar préstamo personal</AlertDialogTitle>
             <AlertDialogDescription className="py-2">
-              Vas a solicitar un préstamo personal de <strong>{loanAmount && formatCurrency(Number(loanAmount))}</strong> a{' '}
-              <strong>{installmentCount} quincenas</strong> a tu nombre. Se cobrará en tu relación de cobro y no usa tu línea de crédito.
+              Préstamo personal de <strong>{loanAmount && formatCurrency(Number(loanAmount))}</strong> a{' '}
+              <strong>{installmentCount} quincenas</strong> a nombre de <strong>{holderName}</strong>. Se cobrará en tu relación de cobro y no usa tu línea de crédito.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, Home, List, LogOut, LifeBuoy, UserCircle, Bell, ArrowLeft, HandCoins } from "lucide-react";
+import { Menu, Home, List, LogOut, LifeBuoy, UserCircle, Bell, ArrowLeft } from "lucide-react";
 import Logo from "./logo";
 import { cn } from "@/lib/utils";
 import { performSignOut } from "@/app/actions";
@@ -14,7 +14,6 @@ import { useNotifications } from "@/context/notifications-context";
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/vales", label: "Vales", icon: List },
-  { href: "/prestamo-personal", label: "Préstamo Personal", icon: HandCoins },
   { href: "/notificaciones", label: "Notificaciones", icon: Bell },
   { href: "/perfil", label: "Perfil", icon: UserCircle },
   { href: "/soporte", label: "Soporte", icon: LifeBuoy },

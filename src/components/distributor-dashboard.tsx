@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "./ui/badge";
-import { CircleDollarSign, Download, Wallet, HandCoins } from "lucide-react";
+import { CircleDollarSign, Download, Wallet } from "lucide-react";
 import { Progress } from "./ui/progress";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Button } from "./ui/button";
@@ -94,35 +94,6 @@ const LineDataCard = ({ data }: { data: any }) => {
         </Card>
     )
 };
-
-export type PersonalLoanCardStatus =
-    | { eligible: true }
-    | { eligible: false; message: string; folioActivo: string | null };
-
-const PersonalLoanCard = ({ status }: { status: PersonalLoanCardStatus }) => (
-    <Card className="shadow-sm border border-indigo-200 bg-indigo-50/60 flex flex-col">
-        <CardHeader className="p-3 pb-2">
-            <CardTitle className="font-headline text-sm font-bold flex items-center gap-2 text-indigo-800">
-                <HandCoins className="h-5 w-5" />
-                Préstamo Personal
-            </CardTitle>
-            <CardDescription className="text-xs">
-                {status.eligible
-                    ? 'Disponible: de $4,500 a $8,500 a tu nombre, sin usar tu línea.'
-                    : status.message}
-            </CardDescription>
-        </CardHeader>
-        {(status.eligible || status.folioActivo) && (
-            <CardFooter className="p-2 bg-transparent mt-auto border-t border-indigo-100">
-                <Button className="w-full bg-indigo-600 text-white hover:bg-indigo-700" size="sm" asChild>
-                    <Link href={status.eligible ? '/prestamo-personal' : `/sign/${status.folioActivo}`}>
-                        {status.eligible ? 'Solicitar Préstamo Personal' : 'Ver mi préstamo activo'}
-                    </Link>
-                </Button>
-            </CardFooter>
-        )}
-    </Card>
-);
 
 const CollectionReportCard = ({ data }: { data: any }) => (
     <Card className="shadow-sm flex flex-col">
@@ -224,7 +195,7 @@ export const DistributorDashboardSkeleton = () => (
     </div>
 );
 
-export default function DistributorDashboard({ distributorData, personalLoan }: { distributorData: any; personalLoan: PersonalLoanCardStatus }) {
+export default function DistributorDashboard({ distributorData }: { distributorData: any }) {
     const getFirstName = (fullName: string) => {
         if (!fullName) return '';
         const nameParts = fullName.split(' ');
@@ -244,7 +215,6 @@ export default function DistributorDashboard({ distributorData, personalLoan }: 
                 <div className="flex flex-col gap-3">
                     <LineDataCard data={distributorData} />
                     <CurrentStatusCard data={distributorData} />
-                    <PersonalLoanCard status={personalLoan} />
                     <CollectionReportCard data={distributorData} />
                     <DistributorInfoCard data={distributorData} />
                     <ProfileCard data={distributorData} />

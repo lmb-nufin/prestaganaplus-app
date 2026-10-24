@@ -11,7 +11,7 @@ Esta es una aplicación web construida con **Next.js (App Router)** y **TypeScri
 - **Lenguaje**: TypeScript
 - **UI**: React, ShadCN UI, TailwindCSS, Lucide Icons
 - **Autenticación**: NextAuth.js v5 (Beta) con el proveedor `credentials`.
-- **Datos (Actual)**: Con `DEMO_MODE=true` usa una **API simulada en memoria** (`src/lib/demo-api.ts`); sin él, llama a la API real en `API_BASE_URL`. Asociadas demo (NIP `1234`, OTP siempre `123456`): `1000001` elegible para préstamo personal, `1000002` atrasada, `1000003` con menos de 3 meses, `1000004` con el servicio de préstamo personal caído.
+- **Datos (Actual)**: Con `DEMO_MODE=true` usa una **API simulada en memoria** (`src/lib/demo-api.ts`); sin él, llama a la API real en `API_BASE_URL`. Asociadas demo (NIP `1234`, OTP siempre `123456`): `1000001` elegible para préstamo personal, `1000002` atrasada, `1000003` con menos de 3 meses, `1000004` con el servicio de préstamo personal caído, `1000005` con una respuesta de préstamo personal mal formada.
 - **Despliegue**: Preparada para desplegarse en **Vercel**.
 
 ## 2. Funcionalidades Implementadas (con datos de prueba)
