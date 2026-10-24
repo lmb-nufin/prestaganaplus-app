@@ -13,12 +13,12 @@ export function NewOrRenewedChoice({ onChoice }: NewOrRenewedChoiceProps) {
     <div className="p-4 space-y-3">
       <Button
         variant="outline"
-        className="w-full h-20 flex items-center justify-start p-4"
+        className="w-full h-auto min-h-20 flex items-center justify-start p-4 whitespace-normal"
         onClick={() => onChoice('new')}
       >
         <div className="flex items-center gap-3 w-full">
           <UserPlus className="h-6 w-6 text-primary flex-shrink-0" />
-          <div className="flex-1 text-left">
+          <div className="flex-1 min-w-0 text-left">
             <h3 className="font-semibold">Cliente Nuevo</h3>
             <p className="text-xs text-muted-foreground">
               Crear vale para cliente nuevo
@@ -28,12 +28,12 @@ export function NewOrRenewedChoice({ onChoice }: NewOrRenewedChoiceProps) {
       </Button>
       <Button
         variant="outline"
-        className="w-full h-20 flex items-center justify-start p-4"
+        className="w-full h-auto min-h-20 flex items-center justify-start p-4 whitespace-normal"
         onClick={() => onChoice('renewed')}
       >
         <div className="flex items-center gap-3 w-full">
           <UserCog className="h-6 w-6 text-accent flex-shrink-0" />
-          <div className="flex-1 text-left">
+          <div className="flex-1 min-w-0 text-left">
             <h3 className="font-semibold">Cliente Existente</h3>
             <p className="text-xs text-muted-foreground">
               Buscar un cliente existente por su CURP.
