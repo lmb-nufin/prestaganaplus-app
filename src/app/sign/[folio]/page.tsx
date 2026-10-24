@@ -3,8 +3,10 @@ import { notFound } from 'next/navigation';
 import { getValeByFolio } from '@/app/actions';
 import { SignPageContent } from '@/components/sign-page-content';
 import { auth } from '@/lib/auth';
-import type { Vale } from '@/lib/types';
+import type { IssuanceMode, Vale } from '@/lib/types';
 import { getAssociateDashboard } from '@/lib/data';
+import { getIssuanceMode } from '@/lib/phone';
+import { DemoBridgeSlot } from '@/components/demo-bridge-slot';
 import { redirect } from 'next/navigation';
 
 export default async function SignPage({ params }: { params: { folio: string } }) {
@@ -25,6 +27,15 @@ export default async function SignPage({ params }: { params: { folio: string } }
   }
   
   const associateName = session?.user?.name ?? 'tu Asociada PrestaGana+';
+  // Solo la UX: signValeWithOtp y cancelVale vuelven a validar la restricción en el servidor.
+  const issuance: IssuanceMode = associateNumber
+    ? await getIssuanceMode(associateNumber)
+    : { mode: 'BLOQUEADA', message: 'No se pudo autenticar a la asociada.' };
 
-  return <SignPageContent vale={vale} associateName={associateName} creditLine={creditLine} />;
+  return (
+    <>
+      <DemoBridgeSlot />
+      <SignPageContent vale={vale} associateName={associateName} creditLine={creditLine} issuance={issuance} />
+    </>
+  );
 }

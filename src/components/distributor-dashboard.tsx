@@ -9,7 +9,9 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { PaymentOptionsDialog } from "./payment-options-dialog";
 import Link from "next/link";
-import { PlusCircle } from "lucide-react";
+import { AlertTriangle, PlusCircle } from "lucide-react";
+import type { PhoneCollection, PhoneState } from "@/lib/types";
+import { PhoneTrackerCard } from "./phone-tracker";
 
 
 const InfoItem = ({ label, value }: { label: string; value: string | number }) => (
@@ -19,12 +21,24 @@ const InfoItem = ({ label, value }: { label: string; value: string | number }) =
     </div>
 );
 
-const CurrentStatusCard = ({ data }: { data: any }) => {
+const moraStyles = {
+    AVISO: { box: 'border-amber-300 bg-amber-50 text-amber-900', title: 'Pago del equipo pendiente' },
+    GRACIA: { box: 'border-orange-400 bg-orange-50 text-orange-900', title: 'Tu equipo está en periodo de gracia' },
+    BLOQUEO: { box: 'border-destructive/40 bg-destructive/10 text-destructive', title: 'Pago del equipo vencido' },
+} as const;
+
+const CurrentStatusCard = ({ data, phoneState }: { data: any; phoneState: PhoneState | null }) => {
     const isLate = data.paymentStatus.status === 'Atrasada';
     const statusColor = isLate ? 'text-destructive' : 'text-accent';
     const bgColor = isLate ? 'bg-destructive/10' : 'bg-accent/10';
     const borderColor = isLate ? 'border-destructive/20' : 'border-accent/20';
-    
+
+    // Desglose: amountDue incluye la cuota del teléfono y, si hay, su mora.
+    const phone: PhoneCollection | undefined = data.telefono;
+    const mora = phoneState?.mora;
+    const phoneDue = phone ? phone.pagoQuincenal + (mora?.monto ?? 0) : 0;
+    const valesDue = Math.max(data.paymentStatus.amountDue - phoneDue, 0);
+
     return (
         <Card className={`shadow-sm ${bgColor} ${borderColor} flex flex-col`}>
             <CardHeader className="p-3 pb-2">
@@ -42,6 +56,43 @@ const CurrentStatusCard = ({ data }: { data: any }) => {
                     <p className="text-xs text-muted-foreground">Monto a Pagar</p>
                     <p className={`font-bold text-sm ${statusColor}`}>{formatCurrency(data.paymentStatus.amountDue)}</p>
                 </div>
+                {phone && (
+                    <div className="col-span-2 mt-2 space-y-1 rounded-md bg-background/70 p-2 text-xs" data-testid="collection-breakdown">
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Vales</span>
+                            <span className="font-semibold">{formatCurrency(valesDue)}</span>
+                        </div>
+                        <div className="flex justify-between gap-2">
+                            <span className="text-muted-foreground">
+                                Teléfono · cuota {phone.cuotaActual} de {phone.totalCuotas}
+                            </span>
+                            <span className="font-semibold">{formatCurrency(phoneDue)}</span>
+                        </div>
+                        <div className="flex justify-between text-muted-foreground">
+                            <span>Saldo del equipo</span>
+                            <span>{formatCurrency(phone.saldo)}</span>
+                        </div>
+                    </div>
+                )}
+                {mora && (
+                    <div
+                        className={cn('col-span-2 mt-2 rounded-md border p-2 text-xs', moraStyles[mora.nivel].box)}
+                        data-testid={`phone-mora-${mora.nivel}`}
+                    >
+                        <p className="flex items-center gap-1.5 font-semibold">
+                            <AlertTriangle className="h-4 w-4" />
+                            {moraStyles[mora.nivel].title}
+                        </p>
+                        <p className="mt-0.5">
+                            Debes {formatCurrency(mora.monto)} del equipo ({mora.dias} {mora.dias === 1 ? 'día' : 'días'} de atraso).
+                            {mora.nivel === 'AVISO' && ' Págalo para evitar cargos y limitaciones.'}
+                            {mora.nivel === 'GRACIA' && ' Ponte al corriente antes de que termine el periodo de gracia.'}
+                        </p>
+                        <div className="mt-2">
+                            <PaymentOptionsDialog paymentReferences={data.paymentReferences} />
+                        </div>
+                    </div>
+                )}
             </CardContent>
             <CardFooter className="p-2 bg-transparent mt-auto border-t">
                 <PaymentOptionsDialog paymentReferences={data.paymentReferences} />
@@ -195,7 +246,7 @@ export const DistributorDashboardSkeleton = () => (
     </div>
 );
 
-export default function DistributorDashboard({ distributorData }: { distributorData: any }) {
+export default function DistributorDashboard({ distributorData, phoneState = null }: { distributorData: any; phoneState?: PhoneState | null }) {
     const getFirstName = (fullName: string) => {
         if (!fullName) return '';
         const nameParts = fullName.split(' ');
@@ -214,7 +265,8 @@ export default function DistributorDashboard({ distributorData }: { distributorD
                 </div>
                 <div className="flex flex-col gap-3">
                     <LineDataCard data={distributorData} />
-                    <CurrentStatusCard data={distributorData} />
+                    <CurrentStatusCard data={distributorData} phoneState={phoneState} />
+                    <PhoneTrackerCard phoneState={phoneState} />
                     <CollectionReportCard data={distributorData} />
                     <DistributorInfoCard data={distributorData} />
                     <ProfileCard data={distributorData} />

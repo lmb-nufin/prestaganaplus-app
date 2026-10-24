@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState, useState, useEffect, useRef } from 'react';
+import { useActionState, useState, useEffect, useRef, useCallback } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Loader2, Send, KeyRound, CheckCircle, AlertCircle, Info, RefreshCw } from 'lucide-react';
 
@@ -13,9 +13,16 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Label } from './ui/label';
+import { useDeviceSignedSubmit } from '@/hooks/use-device-bridge';
+import { DeviceSignatureError, DeviceSignatureFields } from './device-gate';
 
 
-export function ValeSigningForm({ vale }: { vale: Vale }) {
+export function ValeSigningForm({ vale, deviceSignatureRequired = false }: { vale: Vale; deviceSignatureRequired?: boolean }) {
+  // D2: con equipo, la firma del dispositivo se suma al OTP + NIP.
+  const deviceSignature = useDeviceSignedSubmit(
+    deviceSignatureRequired,
+    useCallback(() => ({ operacion: 'FIRMAR_VALE' as const, folio: vale.folio, monto: vale.loanAmount }), [vale.folio, vale.loanAmount])
+  );
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [signState, formAction] = useActionState(signValeWithOtp, { success: false, message: '' });
@@ -131,7 +138,8 @@ export function ValeSigningForm({ vale }: { vale: Vale }) {
                 Enviar Código de Firma
             </Button>
         ) : (
-            <form action={formAction} className="space-y-4">
+            <form action={formAction} onSubmit={deviceSignature.onSubmit} className="space-y-4">
+                <DeviceSignatureFields signature={deviceSignature.signature} />
                  <Alert variant="default" className="bg-accent/10 border-accent/20 text-accent/90">
                     <CheckCircle className="h-4 w-4 text-accent"/>
                     <AlertTitle className="font-headline text-accent">¡Código Enviado!</AlertTitle>
@@ -195,6 +203,7 @@ export function ValeSigningForm({ vale }: { vale: Vale }) {
 
                 <SubmitButton />
 
+                <DeviceSignatureError message={deviceSignature.error} />
                 {signState.message && !signState.success && !signState.errors && (
                     <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />

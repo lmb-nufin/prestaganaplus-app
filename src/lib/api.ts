@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { demoFetch } from './demo-api';
+import { isDemoModeEnabled } from './demo-mode';
 
 // Con DEMO_MODE=true la app usa datos simulados en memoria (src/lib/demo-api.ts).
 // Sin él, todas las llamadas van a la API real en API_BASE_URL.
@@ -11,12 +12,6 @@ let warnedMissingBaseUrl = false;
 
 const isProduction = () =>
   process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
-
-/** true solo cuando DEMO_MODE se configuró explícitamente (acepta mayúsculas, espacios y comillas). */
-export const isDemoModeEnabled = () => {
-  const flag = (process.env.DEMO_MODE ?? '').trim().replace(/^["']|["']$/g, '').toLowerCase();
-  return flag === 'true' || flag === '1';
-};
 
 const useDemoApi = () => {
   if (isDemoModeEnabled()) return true;

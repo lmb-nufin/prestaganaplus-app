@@ -6,6 +6,8 @@ import { AlertCircle, HandCoins, Loader2 } from 'lucide-react';
 
 import { createPersonalLoanVale } from '@/app/actions';
 import { useAuditData } from '@/hooks/use-audit-data';
+import { useDeviceSignedSubmit } from '@/hooks/use-device-bridge';
+import { DeviceSignatureError, DeviceSignatureFields } from './device-gate';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
@@ -34,10 +36,18 @@ type PersonalLoanFormProps = {
   installments: number[];
   // Solo para el diálogo; el servidor toma los datos de la API.
   holderName: string;
+  // Con emisión restringida, el envío lleva la firma del equipo (miniapp).
+  deviceSignatureRequired?: boolean;
 };
 
-export function PersonalLoanForm({ amounts, installments, holderName }: PersonalLoanFormProps) {
+const signatureContext = (form: HTMLFormElement) => ({
+  operacion: 'PRESTAMO_PERSONAL' as const,
+  monto: Number(new FormData(form).get('loanAmount')),
+});
+
+export function PersonalLoanForm({ amounts, installments, holderName, deviceSignatureRequired = false }: PersonalLoanFormProps) {
   const [state, formAction] = useActionState(createPersonalLoanVale, initialState);
+  const deviceSignature = useDeviceSignedSubmit(deviceSignatureRequired, signatureContext);
   const auditData = useAuditData();
   const formRef = useRef<HTMLFormElement>(null);
   const [loanAmount, setLoanAmount] = useState('');
@@ -47,7 +57,8 @@ export function PersonalLoanForm({ amounts, installments, holderName }: Personal
   const canSubmit = loanAmount !== '' && installmentCount !== '';
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-4">
+    <form ref={formRef} action={formAction} onSubmit={deviceSignature.onSubmit} className="space-y-4">
+      <DeviceSignatureFields signature={deviceSignature.signature} />
       <input type="hidden" name="deviceId" value={auditData.deviceId} />
       <input type="hidden" name="deviceModel" value={auditData.deviceModel} />
       <input type="hidden" name="latitude" value={auditData.latitude} />
@@ -79,6 +90,7 @@ export function PersonalLoanForm({ amounts, installments, holderName }: Personal
         {state?.errors?.installments && <p className="text-xs text-destructive">{state.errors.installments[0]}</p>}
       </div>
 
+      <DeviceSignatureError message={deviceSignature.error} />
       {state?.message && !state.success && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />

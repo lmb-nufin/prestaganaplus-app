@@ -6,7 +6,7 @@ import { useFormStatus } from 'react-dom';
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useRouter } from 'next/navigation';
-import { Calendar as CalendarIcon, Loader2, PlusCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, PlusCircle, AlertTriangle, ArrowLeft, AlertCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,12 +30,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { ExistingClient } from '@/lib/types';
 import { useAuditData } from '@/hooks/use-audit-data';
+import { useDeviceSignedSubmit } from '@/hooks/use-device-bridge';
+import { DeviceSignatureError, DeviceSignatureFields } from './device-gate';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 
 type ValeFormProps = {
   onFormSuccess?: () => void;
   onBack: () => void;
   existingClientData?: ExistingClient | null;
+  // Con emisión restringida, el envío lleva la firma del equipo (miniapp).
+  deviceSignatureRequired?: boolean;
 };
 
 type State = {
@@ -62,8 +67,14 @@ const initialState: State = { message: '', errors: {}, folio: undefined };
 
 const plazosPermitidos = [8, 10, 12, 14];
 
-export function ValeCreationForm({ onFormSuccess, onBack, existingClientData = null }: ValeFormProps) {
+const signatureContext = (form: HTMLFormElement) => ({
+  operacion: 'CREAR_VALE' as const,
+  monto: Number(new FormData(form).get('loanAmount')),
+});
+
+export function ValeCreationForm({ onFormSuccess, onBack, existingClientData = null, deviceSignatureRequired = false }: ValeFormProps) {
   const [state, formAction] = useActionState(createVale, initialState);
+  const deviceSignature = useDeviceSignedSubmit(deviceSignatureRequired, signatureContext);
   const { toast } = useToast();
   const router = useRouter();
   const auditData = useAuditData();
@@ -117,7 +128,7 @@ export function ValeCreationForm({ onFormSuccess, onBack, existingClientData = n
         </Button>
       )}
 
-      <form id="vale-creation-form" action={formAction} className="space-y-4">
+      <form id="vale-creation-form" action={formAction} onSubmit={deviceSignature.onSubmit} className="space-y-4">
         <input type="hidden" name="deviceId" value={auditData.deviceId} />
         <input type="hidden" name="deviceModel" value={auditData.deviceModel} />
         <input type="hidden" name="latitude" value={auditData.latitude} />
@@ -205,7 +216,17 @@ export function ValeCreationForm({ onFormSuccess, onBack, existingClientData = n
             </Select>
             {state?.errors?.installments && <p className="text-xs text-destructive">{state.errors.installments[0]}</p>}
         </div>
-       
+
+        <DeviceSignatureFields signature={deviceSignature.signature} />
+        <DeviceSignatureError message={deviceSignature.error} />
+        {state?.message && !state.success && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle className="font-headline">No se pudo crear el vale</AlertTitle>
+            <AlertDescription>{state.message}</AlertDescription>
+          </Alert>
+        )}
+
         <div className="pt-2">
             <ConfirmationSubmitButton />
         </div>

@@ -10,20 +10,24 @@ import { NewOrRenewedChoice } from '@/components/new-or-renewed-choice';
 import { RenewClientCurpForm } from '@/components/renew-client-curp-form';
 import { ValeCreationForm } from '@/components/vale-creation-form';
 import { PersonalLoanForm } from '@/components/personal-loan-form';
-import type { ExistingClient, PersonalLoanOption } from '@/lib/types';
+import { PersonalLoanOptions } from '@/components/personal-loan-options';
+import { DeviceGate } from '@/components/device-gate';
+import type { ExistingClient, IssuanceMode, PersonalLoanOption, PhoneOfferOption } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
-type Step = 'choice' | 'curp_input' | 'form' | 'personal';
+type Step = 'choice' | 'curp_input' | 'form' | 'personal' | 'personal_cash';
 
 type NewValeFlowProps = {
   personalLoan: PersonalLoanOption;
   personalLoanAmounts: number[];
   personalLoanInstallments: number[];
+  phoneOffer: PhoneOfferOption;
+  issuance: IssuanceMode;
 };
 
-export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanInstallments }: NewValeFlowProps) {
+export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanInstallments, phoneOffer, issuance }: NewValeFlowProps) {
   const [step, setStep] = useState<Step>('choice');
   const [existingClientData, setExistingClientData] = useState<ExistingClient | null>(null);
   const router = useRouter();
@@ -33,7 +37,7 @@ export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanIns
       setExistingClientData(null);
       setStep('form');
     } else if (choice === 'personal') {
-      if (personalLoan.eligible) setStep('personal');
+      if (personalLoan.eligible || phoneOffer.available) setStep('personal');
     } else {
       setStep('curp_input');
     }
@@ -59,6 +63,7 @@ export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanIns
       case 'curp_input':
         return 'Buscar Cliente por CURP';
       case 'personal':
+      case 'personal_cash':
         return 'Préstamo Personal';
       case 'choice':
       default:
@@ -73,6 +78,8 @@ export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanIns
       case 'curp_input':
         return 'Ingresa el CURP del cliente para cargar sus datos.';
       case 'personal':
+        return 'Elige efectivo o un equipo de trabajo. Ninguno usa tu línea de crédito.';
+      case 'personal_cash':
         return 'Un préstamo a tu nombre que no usa tu línea de crédito.';
       case 'choice':
       default:
@@ -80,11 +87,25 @@ export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanIns
     }
   }
 
-  const renderPersonalStep = () => {
+  const renderPersonalOptions = () => (
+    <div className="space-y-4">
+      <Button variant="ghost" size="sm" onClick={handleBackToChoice} className="text-muted-foreground -ml-2">
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Volver
+      </Button>
+      <PersonalLoanOptions
+        personalLoan={personalLoan}
+        phoneOffer={phoneOffer}
+        onCash={() => personalLoan.eligible && setStep('personal_cash')}
+      />
+    </div>
+  );
+
+  const renderPersonalCashStep = (deviceSignatureRequired: boolean) => {
     if (!personalLoan.eligible) return null;
     return (
       <div className="space-y-4">
-        <Button variant="ghost" size="sm" onClick={handleBackToChoice} className="text-muted-foreground -ml-2">
+        <Button variant="ghost" size="sm" onClick={() => setStep('personal')} className="text-muted-foreground -ml-2">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Volver
         </Button>
@@ -92,27 +113,40 @@ export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanIns
           amounts={personalLoanAmounts}
           installments={personalLoanInstallments}
           holderName={personalLoan.holderName}
+          deviceSignatureRequired={deviceSignatureRequired}
         />
       </div>
     );
   };
 
-  const renderStep = () => {
+  const renderStep = (deviceSignatureRequired: boolean) => {
+    const choice = (
+      <NewOrRenewedChoice onChoice={handleChoice} personalLoan={personalLoan} phoneOfferAvailable={phoneOffer.available} />
+    );
     switch (step) {
       case 'choice':
-        return <NewOrRenewedChoice onChoice={handleChoice} personalLoan={personalLoan} />;
+        return choice;
       case 'curp_input':
         return <RenewClientCurpForm onCurpSuccess={handleCurpSuccess} onBack={handleBackToChoice} />;
       case 'form':
-        return <ValeCreationForm onFormSuccess={handleFormSuccess} onBack={handleBackToChoice} existingClientData={existingClientData} />;
+        return (
+          <ValeCreationForm
+            onFormSuccess={handleFormSuccess}
+            onBack={handleBackToChoice}
+            existingClientData={existingClientData}
+            deviceSignatureRequired={deviceSignatureRequired}
+          />
+        );
       case 'personal':
-        return renderPersonalStep();
+        return renderPersonalOptions();
+      case 'personal_cash':
+        return renderPersonalCashStep(deviceSignatureRequired);
       default:
-        return <NewOrRenewedChoice onChoice={handleChoice} personalLoan={personalLoan} />;
+        return choice;
     }
   };
 
-  const isPersonalStep = step === 'personal';
+  const isPersonalStep = step === 'personal' || step === 'personal_cash';
 
   return (
     <div className={cn('flex flex-col min-h-screen', isPersonalStep ? 'bg-indigo-50/40' : 'bg-muted/30')}>
@@ -137,7 +171,8 @@ export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanIns
                     <CardDescription className={cn('text-xs', isPersonalStep && 'text-indigo-100')}>{getDescription()}</CardDescription>
                 </CardHeader>
                 <CardContent className={cn(isPersonalStep && 'pt-6')}>
-                    {renderStep()}
+                    {/* Con emisión restringida, fuera de la miniapp solo se ve el aviso (sin formulario). */}
+                    <DeviceGate issuance={issuance}>{renderStep}</DeviceGate>
                 </CardContent>
             </Card>
          </div>
