@@ -1,10 +1,12 @@
 
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Poppins, PT_Sans } from "next/font/google";
 import "./globals.css";
 import { NotificationsProvider } from "@/context/notifications-context";
 
 const inter = Inter({ subsets: ["latin"] });
+const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-poppins" });
+const ptSans = PT_Sans({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-pt-sans" });
 
 export const metadata: Metadata = {
   title: "PrestaGana",
@@ -16,7 +18,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>)
 {
   return (
-    <html lang="es">
+    <html lang="es" className={`${poppins.variable} ${ptSans.variable}`}>
       <body className={inter.className}>
         <NotificationsProvider>
           {children}
