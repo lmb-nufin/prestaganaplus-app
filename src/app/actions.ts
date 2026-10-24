@@ -2,8 +2,9 @@
 'use server';
 
 import { z } from 'zod';
-import { addVale, findValeByFolio, getVales as getValesFromDb, updateValeStatus as updateValeStatusInDb, findUserByAssociateNumber, deleteValeByFolio, findClientByCurp, createUser, updateUserNip, storeOtpForReset, getStoredOtpForReset } from '@/lib/data';
+import { addVale, findValeByFolio, getVales as getValesFromDb, updateValeStatus as updateValeStatusInDb, findUserByAssociateNumber, deleteValeByFolio, findClientByCurp, createUser, updateUserNip, storeOtpForReset, getStoredOtpForReset, addPersonalLoanVale } from '@/lib/data';
 import { apiFetch } from '@/lib/api';
+import { getPersonalLoanEligibility, PERSONAL_LOAN_AMOUNTS, PERSONAL_LOAN_INSTALLMENTS } from '@/lib/personal-loan';
 import { revalidatePath } from 'next/cache';
 import { signIn, signOut, auth } from '@/lib/auth';
 import { AuthError } from 'next-auth';
@@ -150,6 +151,69 @@ export async function createVale(prevState: any, formData: FormData) {
     revalidatePath(`/sign/${folioValue}`);
 
     return { success: true, message: 'Vale creado', folio: folioValue };
+}
+
+export async function createPersonalLoanVale(prevState: any, formData: FormData) {
+    const session = await auth();
+    if (!session?.user?.associateNumber) {
+        return { success: false, message: 'Error de autenticación: No se pudo obtener el número de asociada.' };
+    }
+    const associateNumber = session.user.associateNumber;
+
+    // Se vuelve a evaluar aquí: la página pudo cargarse antes de que cambiara el estado (p. ej. otra pestaña).
+    const eligibility = await getPersonalLoanEligibility(associateNumber);
+    if (!eligibility.eligible) {
+        return { success: false, message: eligibility.message };
+    }
+
+    const PersonalLoanSchema = z.object({
+        loanAmount: z.coerce.number().refine(v => PERSONAL_LOAN_AMOUNTS.includes(v), 'Monto no permitido.'),
+        installments: z.coerce.number().refine(v => PERSONAL_LOAN_INSTALLMENTS.includes(v), 'Plazo no permitido.'),
+        deviceId: z.string().optional(),
+        deviceModel: z.string().optional(),
+        latitude: z.string().optional(),
+        longitude: z.string().optional(),
+    });
+
+    const validatedFields = PersonalLoanSchema.safeParse(Object.fromEntries(formData.entries()));
+    if (!validatedFields.success) {
+        return {
+            success: false,
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Monto o plazo no permitido.',
+        };
+    }
+
+    const { loanAmount, installments, deviceId, deviceModel, latitude, longitude } = validatedFields.data;
+    const latNum = latitude ? parseFloat(latitude) : null;
+    const lngNum = longitude ? parseFloat(longitude) : null;
+
+    // Los datos personales salen de la API, nunca del formulario.
+    const { cliente } = eligibility;
+    const result = await addPersonalLoanVale({
+        associateNumber,
+        firstName: cliente.firstName,
+        lastNameP: cliente.lastNameP,
+        lastNameM: cliente.lastNameM,
+        birthDate: cliente.birthDate,
+        phone: cliente.phone,
+        id_cliente: cliente.id_cliente,
+        loanAmount,
+        installments,
+        deviceId: deviceId || 'unknown',
+        deviceModel: deviceModel || 'unknown',
+        latitude: latitude || 'unknown',
+        longitude: longitude || 'unknown',
+        mapLink: latNum && lngNum ? `https://www.google.com/maps?q=${latNum},${lngNum}` : null,
+    });
+
+    if (!result.ok) {
+        return { success: false, message: result.message };
+    }
+
+    revalidatePath('/');
+    revalidatePath('/vales');
+    redirect(`/sign/${result.folio}`);
 }
 
 

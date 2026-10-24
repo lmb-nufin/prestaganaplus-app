@@ -11,7 +11,11 @@ export const DigitalVale = ({ vale, associateName }: { vale: Vale, associateName
   const baseUrl = process.env.API_BASE_URL || '';
   const valeUrl = `${baseUrl}ValeView/${vale.folio}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(valeUrl)}`;
-  const whatsappMessage = `Hola ${vale.firstName}! 👋\n\nTu vale PrestaGana+ ha sido autorizado por ${associateName}.\n\nPuedes consultarlo aqui 👇\n\n${valeUrl}`;
+  const isPersonal = vale.tipoVale === 'PERSONAL';
+  // En el préstamo personal, vale.phone ya es el teléfono de la asociada.
+  const whatsappMessage = isPersonal
+    ? `Hola ${vale.firstName}! 👋\n\nTu préstamo personal PrestaGana+ ha sido autorizado.\n\nPuedes consultarlo aqui 👇\n\n${valeUrl}`
+    : `Hola ${vale.firstName}! 👋\n\nTu vale PrestaGana+ ha sido autorizado por ${associateName}.\n\nPuedes consultarlo aqui 👇\n\n${valeUrl}`;
   const whatsappUrl = `https://wa.me/${vale.phone.replace(/\D/g, '')}?text=${encodeURIComponent(whatsappMessage)}`;
 
   return (
@@ -44,9 +48,9 @@ export const DigitalVale = ({ vale, associateName }: { vale: Vale, associateName
       
       <Alert variant="default" className="bg-blue-50 border-blue-200">
           <ListChecks className="h-5 w-5 text-blue-600"/>
-          <AlertTitle className="text-blue-800 font-headline">Próximos Pasos para tu Cliente</AlertTitle>
+          <AlertTitle className="text-blue-800 font-headline">{isPersonal ? 'Próximos Pasos' : 'Próximos Pasos para tu Cliente'}</AlertTitle>
           <AlertDescription className="text-blue-700 text-xs">
-              Tu cliente debe acudir a sucursal y presentar:
+              {isPersonal ? 'Acude a sucursal y presenta:' : 'Tu cliente debe acudir a sucursal y presentar:'}
               <ul className="list-disc space-y-1 pl-4 mt-2">
                   <li>El vale digital (código QR).</li>
                   <li>Su INE vigente.</li>

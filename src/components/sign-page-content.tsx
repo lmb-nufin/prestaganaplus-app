@@ -7,8 +7,9 @@ import type { Vale } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, parseDateOnly } from '@/lib/utils';
 import { DigitalVale } from '@/components/digital-vale';
+import { PersonalBadge } from '@/components/personal-badge';
 import { Badge } from './ui/badge';
 import { ValeSigningForm } from './vale-signing-form';
 import { Alert, AlertTitle, AlertDescription } from './ui/alert';
@@ -32,7 +33,9 @@ const ValeStatusBadge = ({ status }: { status: Vale['status'] }) => {
 };
 
 export function SignPageContent({ vale, associateName, creditLine }: { vale: Vale, associateName: string, creditLine?: { placed: number, limit: number, available: number } }) {
-    const canBeSigned = creditLine ? (vale.loanAmount <= creditLine.available ) : true;
+    const isPersonal = vale.tipoVale === 'PERSONAL';
+    // El préstamo personal no sale de la línea de crédito.
+    const canBeSigned = isPersonal || !creditLine || vale.loanAmount <= creditLine.available;
     const canBeCancelled = vale.status === 'PENDIENTE' || vale.status === 'FIRMADO';
     const isSignedOrRedeemed = vale.status === 'FIRMADO' || vale.status === 'CANJEADO';
 
@@ -52,17 +55,20 @@ export function SignPageContent({ vale, associateName, creditLine }: { vale: Val
         <Card className="shadow-lg">
           <CardHeader className="p-4">
             <div className="flex items-start gap-3">
-              <FileText className="h-6 w-6 text-primary flex-shrink-0 mt-0.5" />
+              <FileText className={`h-6 w-6 flex-shrink-0 mt-0.5 ${isPersonal ? 'text-indigo-600' : 'text-primary'}`} />
               <div>
-                <CardTitle className="font-headline text-lg">Detalles de Vale</CardTitle>
+                <CardTitle className="font-headline text-lg flex items-center gap-2">
+                  {isPersonal ? 'Préstamo Personal' : 'Detalles de Vale'}
+                  {isPersonal && <PersonalBadge />}
+                </CardTitle>
                 <CardDescription className="text-xs">Folio: {vale.folio}</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <div className="space-y-2 mb-4">
-                <InfoRow label="Cliente" value={`${vale.firstName} ${vale.lastNameP} ${vale.lastNameM}`} />
-                <InfoRow label="Fecha de Nacimiento" value={format(new Date(vale.birthDate), "d 'de' MMMM, yyyy", { locale: es })} />
+                <InfoRow label={isPersonal ? 'Asociada' : 'Cliente'} value={`${vale.firstName} ${vale.lastNameP} ${vale.lastNameM}`} />
+                <InfoRow label="Fecha de Nacimiento" value={format(parseDateOnly(vale.birthDate), "d 'de' MMMM, yyyy", { locale: es })} />
                 <InfoRow label="Monto" value={formatCurrency(vale.loanAmount)} />
                 <InfoRow label="Quincenas" value={vale.installments} />
                 <InfoRow label="Teléfono" value={vale.phone} />

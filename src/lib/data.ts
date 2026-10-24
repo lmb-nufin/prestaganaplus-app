@@ -1,5 +1,5 @@
 
-import type { Vale, ExistingClient, NipResetOtp } from './types';
+import type { Vale, ExistingClient, NipResetOtp, PersonalLoanInfo } from './types';
 
 import { apiFetch } from './api';
 
@@ -291,4 +291,47 @@ export const updateUserNip = async (associateId: string, newNip: string): Promis
     throw error;
   }
   */
+};
+export const getPersonalLoanInfo = async (associateNumber: string): Promise<PersonalLoanInfo | null> => {
+  try {
+    const response = await apiFetch(`prestamoPersonal/${associateNumber}`, { cache: 'no-store' });
+    if (!response.ok) {
+      console.error(`API Error: Failed to get personal loan info for ${associateNumber}`, response.status, await response.text());
+      return null;
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Network error when getting personal loan info for ${associateNumber}:`, error);
+    return null;
+  }
+};
+
+/**
+ * Crea un vale de préstamo personal. A diferencia de addVale, regresa el mensaje
+ * de error de la API, que es la que valida elegibilidad, monto y plazo.
+ */
+export const addPersonalLoanVale = async (
+  valeData: Record<string, unknown>
+): Promise<{ ok: true; folio: string } | { ok: false; message: string }> => {
+  try {
+    const response = await apiFetch(`vales`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...valeData, tipoVale: 'PERSONAL' }),
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok) {
+      console.error(`API Error: Failed to create personal loan vale`, response.status, body);
+      return { ok: false, message: body?.message || 'No se pudo crear el préstamo personal.' };
+    }
+    const folioObject = Array.isArray(body) ? body[0] : body;
+    const folio = folioObject?.folio ?? folioObject?.FOLIO;
+    if (!folio) {
+      return { ok: false, message: 'El servidor no devolvió el folio del préstamo.' };
+    }
+    return { ok: true, folio };
+  } catch (error) {
+    console.error(`Network error when creating personal loan vale:`, error);
+    return { ok: false, message: 'Servicio no disponible. Intenta más tarde.' };
+  }
 };
