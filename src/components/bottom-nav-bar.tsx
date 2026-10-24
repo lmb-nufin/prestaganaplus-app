@@ -68,7 +68,7 @@ const NewValeButton = () => {
 
 export default function BottomNavBar() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 h-16 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 h-16 border-t bg-background md:hidden">
       <div className="container mx-auto flex h-full items-center justify-between px-0">
         <div className="flex flex-1 justify-around">
           {navItemsLeft.map(item => (

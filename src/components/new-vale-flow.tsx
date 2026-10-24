@@ -150,7 +150,7 @@ export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanIns
 
   return (
     <div className={cn('flex flex-col min-h-screen', isPersonalStep ? 'bg-indigo-50/40' : 'bg-muted/30')}>
-       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+       <header className="sticky top-0 z-50 w-full border-b bg-background">
             <div className="container flex h-14 items-center px-4">
                  <Button variant="ghost" asChild size="sm">
                     <Link href="/vales">

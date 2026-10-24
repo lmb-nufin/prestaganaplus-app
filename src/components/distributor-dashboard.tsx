@@ -258,7 +258,7 @@ export default function DistributorDashboard({ distributorData, phoneState = nul
 
     return (
         <div className="flex flex-col">
-            <main className="flex-grow container mx-auto p-2 md:p-3 pb-20 md:pb-8">
+            <main className="flex-grow container mx-auto p-2 md:p-3 pb-28 md:pb-8">
                 <div className="mb-4">
                     <h1 className="text-xl font-bold font-headline text-foreground/90">Hola, {firstName}</h1>
                     <p className="text-sm text-muted-foreground">Qué bueno verte de nuevo.</p>
