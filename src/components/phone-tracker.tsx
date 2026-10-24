@@ -27,7 +27,7 @@ export function PhoneTrackerCard({ phoneState }: { phoneState: PhoneState | null
       <CardHeader className="p-3 pb-2">
         <CardTitle className="font-headline text-sm font-bold flex items-center gap-2">
           <Smartphone className="h-5 w-5 text-indigo-600" />
-          Mi Samsung PrestaGana
+          Mi Teléfono PrestaGana
         </CardTitle>
         {solicitud && <p className="text-xs text-muted-foreground">Folio {solicitud.folio}</p>}
       </CardHeader>
