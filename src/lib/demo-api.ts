@@ -1,48 +1,101 @@
+import 'server-only';
 
 import type { Vale, ExistingClient } from './types';
 
-// Por defecto la app trabaja con datos simulados en memoria.
-// Para conectarse a la API real, definir USE_REAL_API=true y API_BASE_URL.
-const USE_REAL_API = process.env.USE_REAL_API === 'true';
-const API_BASE_URL = process.env.API_BASE_URL;
-
-export const apiFetch = async (path: string, init?: RequestInit): Promise<Response> => {
-  const cleanPath = path.replace(/^\/+/, '');
-  if (USE_REAL_API) {
-    return fetch(`${API_BASE_URL}${cleanPath}`, init);
-  }
-  return mockFetch(cleanPath, init);
-};
-
 // ==================================================================
-// --- API simulada ---
+// --- API simulada en memoria para DEMO_MODE=true ---
 // ==================================================================
 
-// Credenciales de prueba: asociada 1000001, NIP 1234. OTP siempre 123456.
+// Todas las asociadas de prueba usan el NIP 1234. El OTP siempre es 123456.
+//   1000001  Al Día, alta 2023: elegible para préstamo personal
+//   1000002  Atrasada
+//   1000003  Alta hace menos de 3 meses
+//   1000004  GET prestamoPersonal responde 503 (servicio caído)
 const MOCK_OTP = '123456';
 
-const mockUser = {
-  id: '1000001',
-  associateNumber: '1000001',
-  ID_PRESTAMO: '1000001',
-  name: 'ASOCIADA DE PRUEBA',
-  email: 'asociada.prueba@example.com',
-  phone: '+525500000000',
-  birthDate: '1990-01-01',
-  nip: '1234',
+type MockAssociate = {
+  user: {
+    id: string;
+    associateNumber: string;
+    ID_PRESTAMO: string;
+    name: string;
+    email: string;
+    phone: string;
+    birthDate: string;
+    nip: string;
+  };
+  cliente: ExistingClient;
+  paymentStatus: { status: string; amountDue: number };
+  activationDate: string;
+  personalLoanServiceDown?: boolean;
 };
 
-const mockDashboard = {
+const monthsAgo = (months: number) => {
+  const date = new Date();
+  date.setMonth(date.getMonth() - months);
+  return date.toISOString();
+};
+
+const makeAssociate = (
+  associateNumber: string,
+  firstName: string,
+  lastNameP: string,
+  lastNameM: string,
+  phone: string,
+  overrides: Partial<Omit<MockAssociate, 'user' | 'cliente'>> = {}
+): MockAssociate => ({
+  user: {
+    id: associateNumber,
+    associateNumber,
+    ID_PRESTAMO: associateNumber,
+    name: `${firstName} ${lastNameP} ${lastNameM}`,
+    email: `asociada.${associateNumber}@example.com`,
+    phone,
+    birthDate: '1990-01-15',
+    nip: '1234',
+  },
+  cliente: {
+    curp: `MOCK${associateNumber}MDFRRN0`,
+    firstName,
+    lastNameP,
+    lastNameM,
+    birthDate: '1990-01-15',
+    phone,
+    id_cliente: `9${associateNumber}`,
+  },
+  paymentStatus: { status: 'Al Día', amountDue: 0 },
+  activationDate: '2023-06-03T00:00:00.000Z',
+  ...overrides,
+});
+
+const mockAssociates: MockAssociate[] = [
+  makeAssociate('1000001', 'ROSA', 'MARTINEZ', 'LOPEZ', '+525500000001'),
+  makeAssociate('1000002', 'ANA', 'RUIZ', 'SOTO', '+525500000002', {
+    paymentStatus: { status: 'Atrasada', amountDue: 1850 },
+  }),
+  makeAssociate('1000003', 'LUCIA', 'TORRES', 'VEGA', '+525500000003', {
+    activationDate: monthsAgo(1),
+  }),
+  makeAssociate('1000004', 'CARMEN', 'DIAZ', 'MORA', '+525500000004', {
+    personalLoanServiceDown: true,
+  }),
+];
+
+const findAssociate = (associateNumber?: string) =>
+  mockAssociates.find((a) => a.user.associateNumber === associateNumber);
+
+const dashboardFor = (a: MockAssociate) => ({
   associateInfo: {
-    name: mockUser.name,
-    associateNumber: mockUser.associateNumber,
+    name: a.user.name,
+    associateNumber: a.user.associateNumber,
     branch: 'SUCURSAL DEMO',
-    activationDate: '2023-06-03T00:00:00.000Z',
+    activationDate: a.activationDate,
     monthlyPlacementAvg: 4834.0,
   },
   associateLevel: { name: 'Nivel Senior', badgeLabel: 'ASOCIADA' },
+  // La línea es fija en la simulación: los préstamos personales no la afectan.
   creditLine: { limit: 150000.0, placed: 50000.0, available: 100000.0 },
-  paymentStatus: { status: 'Al Día', amountDue: 0.0, paymentDeadline: '2026-11-05T00:00:00.000Z' },
+  paymentStatus: { ...a.paymentStatus, paymentDeadline: '2026-11-05T00:00:00.000Z' },
   paymentReferences: {
     stpClabe: '000000000000000000',
     cieConvenio: '000000000',
@@ -50,7 +103,7 @@ const mockDashboard = {
     payCashReference: '0000000000000',
   },
   reports: { latestCollectionReportUrl: '#' },
-};
+});
 
 const mockClients: ExistingClient[] = [
   {
@@ -68,7 +121,7 @@ const mockClients: ExistingClient[] = [
 const store = ((globalThis as any).__prestaganaMockVales ??= [
   {
     folio: '1000001-202610-DEMO01',
-    associateNumber: mockUser.associateNumber,
+    associateNumber: '1000001',
     firstName: 'JUANA',
     lastNameP: 'PEREZ',
     lastNameM: 'GARCIA',
@@ -77,10 +130,34 @@ const store = ((globalThis as any).__prestaganaMockVales ??= [
     installments: 12,
     phone: '+525511111111',
     status: 'FIRMADO',
+    tipoVale: 'CLIENTE',
     createdAt: '2026-10-20T16:00:00.000Z',
     signedAt: '2026-10-20T16:10:00.000Z',
   },
 ] as Vale[]);
+
+// Reglas que la API .NET debe validar del lado del servidor para tipoVale PERSONAL.
+const PERSONAL_AMOUNTS = Array.from({ length: (8500 - 4500) / 500 + 1 }, (_, i) => 4500 + i * 500);
+const PERSONAL_INSTALLMENTS = [8, 10, 12, 14];
+
+const activePersonalVale = (associateNumber: string) =>
+  store.find(
+    (v: Vale) =>
+      v.associateNumber === associateNumber &&
+      v.tipoVale === 'PERSONAL' &&
+      (v.status === 'PENDIENTE' || v.status === 'FIRMADO')
+  );
+
+const validatePersonalLoan = (data: any): string | null => {
+  const associate = findAssociate(data.associateNumber);
+  if (!associate) return 'Asociada no encontrada.';
+  if (associate.paymentStatus.status !== 'Al Día') return 'La asociada no está al día en sus pagos.';
+  if (new Date(monthsAgo(3)) < new Date(associate.activationDate)) return 'La asociada tiene menos de 3 meses de antigüedad.';
+  if (activePersonalVale(data.associateNumber)) return 'La asociada ya tiene un préstamo personal activo.';
+  if (!PERSONAL_AMOUNTS.includes(Number(data.loanAmount))) return 'Monto no permitido para préstamo personal.';
+  if (!PERSONAL_INSTALLMENTS.includes(Number(data.installments))) return 'Plazo no permitido para préstamo personal.';
+  return null;
+};
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -89,17 +166,29 @@ const notFound = (message = 'No encontrado.') => json({ message }, 404);
 
 const readBody = (init?: RequestInit) => (init?.body ? JSON.parse(init.body as string) : {});
 
-const mockFetch = async (path: string, init?: RequestInit): Promise<Response> => {
+export const demoFetch = async (path: string, init?: RequestInit): Promise<Response> => {
   const method = (init?.method ?? 'GET').toUpperCase();
   const [resource, id, sub] = path.split('/');
-  console.log(`[MOCK API] ${method} ${path}`);
+  console.log(`[DEMO API] ${method} ${path}`);
 
   switch (resource) {
-    case 'dashboard':
-      return id === mockUser.associateNumber ? json(mockUser) : notFound();
+    case 'dashboard': {
+      const associate = findAssociate(id);
+      return associate ? json(associate.user) : notFound();
+    }
 
-    case 'dashboardData':
-      return id === mockUser.associateNumber ? json(mockDashboard) : notFound();
+    case 'dashboardData': {
+      const associate = findAssociate(id);
+      return associate ? json(dashboardFor(associate)) : notFound();
+    }
+
+    case 'prestamoPersonal': {
+      const associate = findAssociate(id);
+      if (!associate) return notFound();
+      if (associate.personalLoanServiceDown) return json({ message: 'Servicio no disponible.' }, 503);
+      const active = activePersonalVale(id);
+      return json({ cliente: associate.cliente, prestamoActivo: !!active, folioActivo: active?.folio ?? null });
+    }
 
     case 'valesDashboard':
       return json(store.filter((v: Vale) => v.associateNumber === id));
@@ -107,9 +196,14 @@ const mockFetch = async (path: string, init?: RequestInit): Promise<Response> =>
     case 'vales': {
       if (!id && method === 'POST') {
         const data = readBody(init);
+        const tipoVale = data.tipoVale === 'PERSONAL' ? 'PERSONAL' : 'CLIENTE';
+        if (tipoVale === 'PERSONAL') {
+          const error = validatePersonalLoan(data);
+          if (error) return json({ message: error }, 422);
+        }
         const now = new Date();
         const folio = `${data.associateNumber}-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
-        store.push({ ...data, folio, status: 'PENDIENTE', createdAt: now.toISOString() });
+        store.push({ ...data, tipoVale, folio, status: 'PENDIENTE', createdAt: now.toISOString() });
         return json([{ folio }]);
       }
       const vale = store.find((v: Vale) => v.folio === id);
