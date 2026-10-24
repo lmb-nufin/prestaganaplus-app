@@ -8,15 +8,13 @@ import { es } from "date-fns/locale";
 import { useRouter } from 'next/navigation';
 import { Calendar as CalendarIcon, Loader2, PlusCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
 
-import { getInstallations, getId } from 'firebase/installations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createVale } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, parseDateOnly } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
-import { initializeApp } from "firebase/app";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import {
@@ -31,17 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { ExistingClient } from '@/lib/types';
-import { UAParser } from 'ua-parser-js';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAPCTKaTqLW-9UMJjGlxPiA3PlhWETOJ60",
-  authDomain: "prestagana-ey5tu.firebaseapp.com",
-  projectId: "prestagana-ey5tu",
-  storageBucket: "prestagana-ey5tu.firebasestorage.app",
-  messagingSenderId: "894508861062",
-  appId: "1:894508861062:web:9917e098b906d0e9637307"
-};
-const app = initializeApp(firebaseConfig);
+import { useAuditData } from '@/hooks/use-audit-data';
 
 
 type ValeFormProps = {
@@ -78,66 +66,11 @@ export function ValeCreationForm({ onFormSuccess, onBack, existingClientData = n
   const [state, formAction] = useActionState(createVale, initialState);
   const { toast } = useToast();
   const router = useRouter();
-  const [auditData, setAuditData] = useState({
-    deviceId: '',
-    deviceModel: '',
-    latitude: '',
-    longitude: ''
-});
+  const auditData = useAuditData();
   const [date, setDate] = useState<Date | undefined>(
-    existingClientData?.birthDate ? new Date(existingClientData.birthDate) : undefined
+    existingClientData?.birthDate ? parseDateOnly(existingClientData.birthDate) : undefined
   );
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  
-  useEffect(() => {
-    const gatherAuditData = async () => {
-        let newAuditData = { ...auditData };
-
-        try {
-            const parser = new UAParser();
-            const result = parser.getResult();
-            const vendor = result.device.vendor || '';
-            const model = result.device.model || 'PC/Genérico';
-            const os = result.os.name || '';
-            newAuditData.deviceModel = `${vendor} ${model} (${os})`.trim();
-        } catch (e) {
-            console.warn('Error user-agent', e);
-        }
-
-        try {
-            const installations = getInstallations(app);
-            const fid = await getId(installations);
-            newAuditData.deviceId = fid;
-        } catch (e) {
-            console.warn('No se pudo obtener FID'); 
-            newAuditData.deviceId = 'sin-id-capturado'; 
-        }
-
-        if ('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    setAuditData(prev => ({
-                        ...prev,
-                        ...newAuditData,
-                        latitude: position.coords.latitude.toString(),
-                        longitude: position.coords.longitude.toString()
-                    }));
-                },
-                (error) => {
-                    console.warn("GPS denegado o error:", error.message);
-                    setAuditData(prev => ({ ...prev, ...newAuditData }));
-                },
-                { enableHighAccuracy: false, 
-                  timeout: 15000,           
-                  maximumAge: 60000 }
-            );
-        } else {
-            setAuditData(prev => ({ ...prev, ...newAuditData }));
-        }
-    };
-
-    gatherAuditData();
-}, []);
 
   useEffect(() => {
     if (state?.success && state.folio) {

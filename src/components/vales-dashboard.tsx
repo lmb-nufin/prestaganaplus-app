@@ -13,6 +13,7 @@ import type { Vale } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { getVales } from '@/app/actions';
 import { PlusCircle } from 'lucide-react';
+import { PersonalBadge } from './personal-badge';
 
 
 const InstructionStep = ({ icon, title, description }: { icon: React.ElementType, title: string, description: string }) => {
@@ -59,7 +60,10 @@ const ValesList = ({ vales: valesToList, noDataMessage }: { vales: Vale[], noDat
                                     <p className="text-[13px] font-bold leading-tight">{`${vale.firstName} ${vale.lastNameP} ${vale.lastNameM}`}</p>
                                     <span className="font-mono text-xs text-muted-foreground">{vale.folio}</span>
                                 </div>
-                                <ValeStatusBadge status={vale.status} />
+                                <div className="flex items-center gap-1">
+                                    {vale.tipoVale === 'PERSONAL' && <PersonalBadge />}
+                                    <ValeStatusBadge status={vale.status} />
+                                </div>
                         </div>
                             <div className="flex justify-between items-baseline">
                                 <span className="text-sm font-bold text-primary">{formatCurrency(vale.loanAmount)}</span>
@@ -90,7 +94,12 @@ const ValesList = ({ vales: valesToList, noDataMessage }: { vales: Vale[], noDat
                 {valesToList.map((vale) => (
                     <TableRow key={vale.folio}>
                     <TableCell className="font-mono text-xs">{vale.folio}</TableCell>
-                    <TableCell>{`${vale.firstName} ${vale.lastNameP} ${vale.lastNameM}`}</TableCell>
+                    <TableCell>
+                        <div className="flex items-center gap-2">
+                            {`${vale.firstName} ${vale.lastNameP} ${vale.lastNameM}`}
+                            {vale.tipoVale === 'PERSONAL' && <PersonalBadge />}
+                        </div>
+                    </TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(vale.loanAmount)}</TableCell>
                     <TableCell>
                         <ValeStatusBadge status={vale.status} />

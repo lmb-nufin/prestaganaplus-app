@@ -10,6 +10,7 @@ export type Vale = {
   installments: number; // No. de Quincenas
   phone: string;
   status: 'PENDIENTE' | 'FIRMADO' | 'CANJEADO';
+  tipoVale?: 'CLIENTE' | 'PERSONAL';
   createdAt: string;
   signedAt?: string;
   //deviceId?: string;
@@ -28,6 +29,24 @@ export type ExistingClient = {
   phone: string;
   id_cliente: string;
 };
+
+// Respuesta de GET prestamoPersonal/{associateNumber}
+export type PersonalLoanInfo = {
+  cliente: ExistingClient;
+  prestamoActivo: boolean;
+  folioActivo: string | null;
+};
+
+export type PersonalLoanBlockReason = 'ATRASADA' | 'ANTIGUEDAD' | 'ACTIVO' | 'NO_DISPONIBLE';
+
+export type PersonalLoanEligibility =
+  | { eligible: true; cliente: ExistingClient }
+  | { eligible: false; reason: PersonalLoanBlockReason; message: string; folioActivo?: string | null };
+
+// Lo que llega al cliente en Vale Nuevo: solo el estado y el nombre para el diálogo de confirmación.
+export type PersonalLoanOption =
+  | { eligible: true; holderName: string }
+  | { eligible: false; reason: PersonalLoanBlockReason; folioActivo: string | null };
 
 export type NipResetOtp = {
   otp: string;
