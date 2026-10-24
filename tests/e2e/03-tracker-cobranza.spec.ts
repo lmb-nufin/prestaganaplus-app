@@ -5,7 +5,7 @@ const TRACKER_CASES = [
   { associate: '1000007', step: 'Solicitado', todo: 'Transfiere el enganche' },
   { associate: '1000008', step: 'Enganche confirmado', todo: 'Recibimos tu enganche' },
   { associate: '1000009', step: 'En preparación', todo: 'Estamos configurando' },
-  { associate: '1000010', step: 'Listo para recoger', todo: 'Recógelo en tu sucursal' },
+  { associate: '1000010', step: 'Listo para recoger', todo: 'Recógelo en tu sucursal con tu INE; ahí firmas tu contrato.' },
   { associate: '1000011', step: 'Activo', todo: 'tus vales se emiten desde él' },
 ];
 
