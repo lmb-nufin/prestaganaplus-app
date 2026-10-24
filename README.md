@@ -4,7 +4,7 @@ Este documento proporciona una guía técnica detallada para que tu equipo de de
 
 ## 1. Resumen de la Arquitectura
 
-Esta es una aplicación web construida con **Next.js (App Router)** y **TypeScript**, diseñada para ser desplegada en **Firebase App Hosting**.
+Esta es una aplicación web construida con **Next.js (App Router)** y **TypeScript**, diseñada para ser desplegada en **Vercel**.
 
 ### Tecnologías Principales:
 - **Framework**: Next.js 15 (con Server Components y Server Actions)
@@ -12,7 +12,7 @@ Esta es una aplicación web construida con **Next.js (App Router)** y **TypeScri
 - **UI**: React, ShadCN UI, TailwindCSS, Lucide Icons
 - **Autenticación**: NextAuth.js v5 (Beta) con el proveedor `credentials`.
 - **Base de Datos (Actual)**: Utiliza una **base de datos simulada en memoria** (`src/lib/data.ts`). **Este es el punto más crítico a modificar.**
-- **Despliegue**: Preparada para desplegarse en **Firebase App Hosting**.
+- **Despliegue**: Preparada para desplegarse en **Vercel**.
 
 ## 2. Funcionalidades Implementadas (con datos de prueba)
 
@@ -49,7 +49,7 @@ Una vez que la API esté lista, hay que reemplazar toda la lógica simulada en l
 **Acciones para la programadora:**
 
 1.  **Configurar Variables de Entorno**:
-    En el archivo `.env`, asegúrate de que la variable `API_BASE_URL` apunte a tu nueva API. En producción, esta variable debe estar configurada en el entorno de Firebase App Hosting.
+    Copia `.env.example` a `.env.local` y asegúrate de que la variable `API_BASE_URL` apunte a tu nueva API. En producción, esta variable debe estar configurada en las Environment Variables del proyecto en Vercel.
 
 2.  **Modificar `src/lib/data.ts`**:
     - **Esta es la tarea principal.**
@@ -77,13 +77,11 @@ Una vez que la API esté lista, hay que reemplazar toda la lógica simulada en l
     - Actualmente, los datos se muestran desde un objeto `distributorData` estático.
     - Se debe reemplazar esta lógica para obtener los datos del usuario logueado. He dejado un ejemplo comentado de cómo se haría: obtener la sesión, el número de asociada y llamar a la nueva función `getAssociateDashboard` (que deberás crear en `src/lib/data.ts`) que a su vez llamará al endpoint `GET /dashboard/{associateNumber}` de tu API.
 
-### Paso 3.3: Proceso de Despliegue en Firebase App Hosting
+### Paso 3.3: Proceso de Despliegue en Vercel
 
-1.  **Instalar Firebase CLI**: `npm install -g firebase-tools`
-2.  **Iniciar sesión en Firebase**: `firebase login`
-3.  **Conectar el Repositorio**: En la consola de Firebase, ve a App Hosting y sigue los pasos para conectar tu repositorio de GitHub.
-4.  **Configurar Variables de Entorno en App Hosting**: **¡Muy importante!** No olvides añadir todas las variables de tu archivo `.env` (especialmente `API_BASE_URL` y las de `AUTH_SECRET`) a la configuración del backend en la consola de Firebase App Hosting.
-5.  **Despliegue Automático**: Cada `git push` a la rama principal (generalmente `main`) iniciará un nuevo despliegue.
+1.  **Importar el Repositorio**: En [vercel.com/new](https://vercel.com/new), importa este repositorio de GitHub. Vercel detecta Next.js automáticamente; no hace falta cambiar el comando de build.
+2.  **Configurar Variables de Entorno**: **¡Muy importante!** En *Project Settings → Environment Variables*, añade las variables de `.env.example` (`AUTH_SECRET` y `API_BASE_URL`) para Production y Preview. Genera `AUTH_SECRET` con `npx auth secret`.
+3.  **Despliegue Automático**: Cada `git push` a `main` despliega a producción; cada push a otra rama o PR crea un Preview Deployment.
 
 ---
 
