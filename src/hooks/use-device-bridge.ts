@@ -72,7 +72,7 @@ export async function withDeviceSignature(
   datos: { folio?: string; monto?: number } = {}
 ): Promise<DeviceSignature> {
   const bridge = getDeviceBridge();
-  if (!bridge) throw new Error('Abre la app desde tu Samsung PrestaGana para continuar.');
+  if (!bridge) throw new Error('Abre la app desde tu Teléfono PrestaGana para continuar.');
   const result = await requestDeviceChallenge(operacion, datos);
   if (!result.ok) throw new Error(result.message);
   const [deviceId, firma] = await Promise.all([

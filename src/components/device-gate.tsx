@@ -9,7 +9,7 @@ import type { IssuanceMode } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
 
-export const DEVICE_ONLY_MESSAGE = 'Por seguridad, tus vales se emiten desde tu Samsung PrestaGana.';
+export const DEVICE_ONLY_MESSAGE = 'Por seguridad, tus vales se emiten desde tu Teléfono PrestaGana.';
 
 /**
  * Decide qué ve la asociada antes de emitir, firmar o cancelar un vale.
@@ -58,7 +58,7 @@ export function DeviceGate({
     return (
       <Alert className="border-indigo-200 bg-indigo-50" data-testid="device-only-notice">
         <Smartphone className="h-4 w-4 text-indigo-600" />
-        <AlertTitle className="font-headline text-indigo-900">Usa tu Samsung PrestaGana</AlertTitle>
+        <AlertTitle className="font-headline text-indigo-900">Usa tu Teléfono PrestaGana</AlertTitle>
         <AlertDescription className="space-y-1 text-indigo-800">
           <p>{DEVICE_ONLY_MESSAGE}</p>
           <p className="text-xs">Consultar saldo, pagar y soporte funcionan desde cualquier dispositivo.</p>

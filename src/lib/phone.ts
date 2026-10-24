@@ -3,7 +3,7 @@ import 'server-only';
 import { getPhoneOffer, getPhoneState, verifyDeviceSignature } from './data';
 import type { DeviceOperation, IssuanceMode, PhoneOfferOption, PhoneState } from './types';
 
-export const DEVICE_ONLY_MESSAGE = 'Por seguridad, tus vales se emiten desde tu Samsung PrestaGana.';
+export const DEVICE_ONLY_MESSAGE = 'Por seguridad, tus vales se emiten desde tu Teléfono PrestaGana.';
 export const DEVICE_REPORTED_MESSAGE = 'Tu equipo está reportado. Acude a sucursal para reactivar.';
 export const PHONE_SERVICE_DOWN_MESSAGE = 'Servicio no disponible. Intenta más tarde.';
 
@@ -65,7 +65,7 @@ export async function requireDeviceAuthorization(params: {
   });
   if (!result.valido) {
     console.warn(`[DEVICE] Firma rechazada para ${params.associateNumber} (${params.operacion}): ${result.motivo ?? 'sin motivo'}`);
-    return 'No pudimos verificar tu equipo. Intenta de nuevo desde tu Samsung PrestaGana.';
+    return 'No pudimos verificar tu equipo. Intenta de nuevo desde tu Teléfono PrestaGana.';
   }
   return null;
 }

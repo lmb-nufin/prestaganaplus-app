@@ -1,10 +1,10 @@
 # Contrato web ↔ miniapp Android (Fase 2)
 
-Para el equipo Android. Describe lo que la web app ya espera de la miniapp del Samsung PrestaGana. El lado web está en `src/hooks/use-device-bridge.ts`, `src/components/device-gate.tsx` y `src/lib/phone.ts`.
+Para el equipo Android. Describe lo que la web app ya espera de la miniapp del Teléfono PrestaGana. El lado web está en `src/hooks/use-device-bridge.ts`, `src/components/device-gate.tsx` y `src/lib/phone.ts`.
 
 ## Cuándo se usa
 
-Si la API dice `emisionRestringida: true` y el equipo está `ACTIVO` o `BLOQUEADO`, la web solo permite crear vales, firmarlos, cancelarlos y crear préstamos personales cuando detecta el bridge. Desde cualquier otro navegador, la asociada ve el aviso "Por seguridad, tus vales se emiten desde tu Samsung PrestaGana". Consultar saldo, pagar y pedir soporte funcionan siempre.
+Si la API dice `emisionRestringida: true` y el equipo está `ACTIVO` o `BLOQUEADO`, la web solo permite crear vales, firmarlos, cancelarlos y crear préstamos personales cuando detecta el bridge. Desde cualquier otro navegador, la asociada ve el aviso "Por seguridad, tus vales se emiten desde tu Teléfono PrestaGana". Consultar saldo, pagar y pedir soporte funcionan siempre.
 
 ## El bridge
 

@@ -4,7 +4,7 @@ import { expect, type BrowserContext, type Page, type Request } from '@playwrigh
 export const NIP = '1234';
 export const OTP = '123456';
 
-export const DEVICE_ONLY = 'Por seguridad, tus vales se emiten desde tu Samsung PrestaGana.';
+export const DEVICE_ONLY = 'Por seguridad, tus vales se emiten desde tu Teléfono PrestaGana.';
 export const DEVICE_REPORTED = 'Acude a sucursal para reactivar';
 export const DEVICE_REJECTED = 'No pudimos verificar tu equipo';
 

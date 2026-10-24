@@ -44,7 +44,7 @@ Se documenta en `docs/api-contracts.md` y se simula en `src/lib/demo-api.ts`.
 3. **Tracker en el dashboard** (tarjeta solo si hay solicitud o equipo): Solicitado → Enganche confirmado → En preparación → Listo para recoger → Activo, con el paso actual resaltado y qué hacer. El contrato se firma en sucursal al recoger el equipo (paso Listo para recoger); el enganche no requiere ir a sucursal.
 4. **Desglose de cobranza:** en "Situación Actual", el Monto a Pagar se desglosa en Vales y Teléfono (cuota X de Y, saldo). Con mora del teléfono, aviso escalonado (AVISO/GRACIA) con monto y botón Pagar. Pagar y soporte nunca se bloquean.
 5. **Emisión restringida** (cuando `emisionRestringida`):
-   - Fuera de la miniapp, el botón Vale Nuevo sigue visible pero abre un aviso "Por seguridad, tus vales se emiten desde tu Samsung PrestaGana", sin formulario. Lo mismo al intentar firmar un vale.
+   - Fuera de la miniapp, el botón Vale Nuevo sigue visible pero abre un aviso "Por seguridad, tus vales se emiten desde tu Teléfono PrestaGana", sin formulario. Lo mismo al intentar firmar un vale.
    - Dentro de la miniapp, flujo normal: antes de crear, firmar o crear un préstamo personal se pide un desafío, se firma vía bridge y se verifica.
    - **Enforcement en servidor:** `createVale`, `createPersonalLoanVale`, `signValeWithOtp` y `cancelVale` consultan `getPhoneState` y, si hay restricción, exigen `challengeId` + `firma` + `deviceId` válidos vía `dispositivo/verificar`. Sin eso, rechazo. Ocultar botones no cuenta.
    - Dispositivo REPORTADO o REVOCADO: emisión bloqueada con el mensaje "Acude a sucursal para reactivar".
