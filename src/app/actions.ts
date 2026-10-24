@@ -2,9 +2,11 @@
 'use server';
 
 import { z } from 'zod';
-import { addVale, findValeByFolio, getVales as getValesFromDb, updateValeStatus as updateValeStatusInDb, findUserByAssociateNumber, deleteValeByFolio, findClientByCurp, createUser, updateUserNip, storeOtpForReset, getStoredOtpForReset, addPersonalLoanVale } from '@/lib/data';
+import { addVale, findValeByFolio, getVales as getValesFromDb, updateValeStatus as updateValeStatusInDb, findUserByAssociateNumber, deleteValeByFolio, findClientByCurp, createUser, updateUserNip, storeOtpForReset, getStoredOtpForReset, addPersonalLoanVale, createPhoneRequest, getPhoneState, reportDevice, requestDeviceChallenge as requestDeviceChallengeFromApi } from '@/lib/data';
 import { apiFetch } from '@/lib/api';
 import { getPersonalLoanEligibility, PERSONAL_LOAN_AMOUNTS, PERSONAL_LOAN_INSTALLMENTS } from '@/lib/personal-loan';
+import { getIssuanceMode, getPhoneOfferOption, requireDeviceAuthorization } from '@/lib/phone';
+import type { DeviceChallenge, DeviceOperation, DeviceReportReason } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { signIn, signOut, auth } from '@/lib/auth';
 import { AuthError } from 'next-auth';
@@ -70,6 +72,16 @@ export async function createVale(prevState: any, formData: FormData) {
         };
     }
     
+    const deviceError = await requireDeviceAuthorization({
+        associateNumber,
+        operacion: 'CREAR_VALE',
+        formData,
+        monto: validatedFields.data.loanAmount,
+    });
+    if (deviceError) {
+        return { message: deviceError };
+    }
+
     const isRenewed = validatedFields.data.isRenewed === 'true';
     let phoneE164;
 
@@ -185,6 +197,17 @@ export async function createPersonalLoanVale(prevState: any, formData: FormData)
     }
 
     const { loanAmount, installments, deviceId, deviceModel, latitude, longitude } = validatedFields.data;
+
+    const deviceError = await requireDeviceAuthorization({
+        associateNumber,
+        operacion: 'PRESTAMO_PERSONAL',
+        formData,
+        monto: loanAmount,
+    });
+    if (deviceError) {
+        return { success: false, message: deviceError };
+    }
+
     const latNum = latitude ? parseFloat(latitude) : null;
     const lngNum = longitude ? parseFloat(longitude) : null;
 
@@ -322,6 +345,22 @@ export async function signValeWithOtp(prevState: any, formData: FormData) {
         return { success: false, message: 'No se encontraron los datos de la asociada.' };
     }
 
+    const vale = await findValeByFolio(folio);
+    if (!vale || vale.associateNumber !== session.user.associateNumber) {
+        return { success: false, message: 'No se encontró el vale.' };
+    }
+
+    // D2: en la miniapp la firma del equipo se suma al OTP + NIP, no los reemplaza.
+    const deviceError = await requireDeviceAuthorization({
+        associateNumber: session.user.associateNumber,
+        operacion: 'FIRMAR_VALE',
+        formData,
+        folio,
+        monto: vale.loanAmount,
+    });
+    if (deviceError) {
+        return { success: false, message: deviceError };
+    }
 
     try {
       const associateNumber = associate.associateNumber;
@@ -424,6 +463,21 @@ export async function cancelVale(prevState: any, formData: FormData) {
         return { success: false, message: 'No se encontraron los datos de la asociada.' };
     }
 
+    const vale = await findValeByFolio(folio);
+    if (!vale || vale.associateNumber !== session.user.associateNumber) {
+        return { success: false, message: 'No se pudo encontrar el vale para cancelar.' };
+    }
+
+    const deviceError = await requireDeviceAuthorization({
+        associateNumber: session.user.associateNumber,
+        operacion: 'CANCELAR_VALE',
+        formData,
+        folio,
+    });
+    if (deviceError) {
+        return { success: false, message: deviceError };
+    }
+
     const nipsMatch = nip === associate.nip;
 
     if (!nipsMatch) {
@@ -449,6 +503,115 @@ export async function cancelVale(prevState: any, formData: FormData) {
     }
 }
 
+
+// ==================================================================
+// --- Teléfono financiado y firma del dispositivo ---
+// ==================================================================
+
+const DEVICE_OPERATIONS: DeviceOperation[] = ['CREAR_VALE', 'FIRMAR_VALE', 'PRESTAMO_PERSONAL', 'CANCELAR_VALE'];
+
+/**
+ * Pide a la API un desafío de un solo uso para que la miniapp lo firme.
+ * La asociada sale de la sesión; operación, folio y monto quedan amarrados al desafío.
+ */
+export async function requestDeviceChallenge(
+    operacion: DeviceOperation,
+    datos: { folio?: string; monto?: number } = {}
+): Promise<{ ok: true; challenge: DeviceChallenge } | { ok: false; message: string }> {
+    const session = await auth();
+    if (!session?.user?.associateNumber) {
+        return { ok: false, message: 'No se pudo autenticar a la asociada.' };
+    }
+    if (!DEVICE_OPERATIONS.includes(operacion)) {
+        return { ok: false, message: 'Operación no permitida.' };
+    }
+    const folio = typeof datos.folio === 'string' && datos.folio ? datos.folio : undefined;
+    const monto = typeof datos.monto === 'number' && Number.isFinite(datos.monto) ? datos.monto : undefined;
+
+    const issuance = await getIssuanceMode(session.user.associateNumber);
+    if (issuance.mode === 'BLOQUEADA') return { ok: false, message: issuance.message };
+    if (issuance.mode === 'LIBRE') return { ok: false, message: 'Esta operación no requiere firma del equipo.' };
+
+    const result = await requestDeviceChallengeFromApi({ associateNumber: session.user.associateNumber, operacion, folio, monto });
+    return result.ok ? { ok: true, challenge: result.challenge } : { ok: false, message: result.message };
+}
+
+export async function requestPhone(prevState: any, formData: FormData) {
+    const session = await auth();
+    if (!session?.user?.associateNumber) {
+        return { success: false, message: 'No se pudo autenticar a la asociada.' };
+    }
+    const associateNumber = session.user.associateNumber;
+
+    // Se vuelve a evaluar: la oferta pudo cambiar desde que se cargó la página (p. ej. otra pestaña).
+    const option = await getPhoneOfferOption(associateNumber);
+    if (!option.available) {
+        return { success: false, message: option.message };
+    }
+
+    const PhoneRequestSchema = z.object({
+        quincenas: z.coerce.number().int().refine(
+            (q) => option.offer.planes.some((plan) => plan.quincenas === q),
+            'Elige un plan válido.'
+        ),
+        aceptoTerminos: z.literal('on', { errorMap: () => ({ message: 'Debes aceptar las condiciones.' }) }),
+    });
+    const validatedFields = PhoneRequestSchema.safeParse({
+        quincenas: formData.get('quincenas'),
+        aceptoTerminos: formData.get('aceptoTerminos'),
+    });
+    if (!validatedFields.success) {
+        return {
+            success: false,
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Revisa el plan y acepta las condiciones.',
+        };
+    }
+
+    const result = await createPhoneRequest({
+        associateNumber,
+        quincenas: validatedFields.data.quincenas,
+        aceptoTerminos: true,
+    });
+    if (!result.ok) {
+        return { success: false, message: result.message };
+    }
+
+    revalidatePath('/');
+    revalidatePath('/vales/nuevo');
+    return { success: true, message: 'Solicitud registrada.', folio: result.folio };
+}
+
+const REPORT_REASONS: DeviceReportReason[] = ['ROBO', 'PERDIDA', 'DANO', 'OTRO'];
+
+export async function reportMyDevice(prevState: any, formData: FormData) {
+    const session = await auth();
+    if (!session?.user?.associateNumber) {
+        return { success: false, message: 'No se pudo autenticar a la asociada.' };
+    }
+    const motivo = formData.get('motivo');
+    if (typeof motivo !== 'string' || !REPORT_REASONS.includes(motivo as DeviceReportReason)) {
+        return { success: false, message: 'Elige el motivo del reporte.' };
+    }
+
+    const state = await getPhoneState(session.user.associateNumber);
+    if (!state) {
+        return { success: false, message: 'Servicio no disponible. Intenta más tarde o llama a soporte.' };
+    }
+    if (state.dispositivo?.estatus !== 'ACTIVO' && state.dispositivo?.estatus !== 'BLOQUEADO') {
+        return { success: false, message: 'No tienes un equipo activo para reportar.' };
+    }
+
+    const result = await reportDevice({ associateNumber: session.user.associateNumber, motivo: motivo as DeviceReportReason });
+    if (!result.ok) {
+        return { success: false, message: result.message };
+    }
+
+    revalidatePath('/');
+    revalidatePath('/perfil');
+    revalidatePath('/vales/nuevo');
+    return { success: true, message: 'Equipo reportado.' };
+}
 
 export async function getClientByCurp(curp: string) {
     const result = await findClientByCurp(curp);
