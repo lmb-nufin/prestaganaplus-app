@@ -23,7 +23,7 @@ export function PaymentOptionsDialog({ paymentReferences }: PaymentOptionsDialog
           Pagar Ahora
         </Button>
       </DialogTrigger>
-      <DialogContent className="p-0 max-w-sm">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-sm overflow-hidden rounded-2xl p-0">
         <PaymentOptionsModal
           stpClabe={paymentReferences.stpClabe}
           cieConvenio={paymentReferences.cieConvenio}
