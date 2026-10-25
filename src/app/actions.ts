@@ -11,6 +11,8 @@ import { revalidatePath } from 'next/cache';
 import { signIn, signOut, auth } from '@/lib/auth';
 import { AuthError } from 'next-auth';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
+import { safeCallbackPath } from '@/lib/safe-redirect';
 
 
 export async function authenticate(
@@ -18,7 +20,14 @@ export async function authenticate(
   formData: FormData,
 ) {
   try {
-    await signIn('credentials', formData);
+    // Sin redirectTo, NextAuth regresa a /login y el middleware muestra el dashboard con la URL
+    // de /login. Se manda a callbackUrl (si es interna) o al inicio.
+    const host = (await headers()).get('host');
+    await signIn('credentials', {
+      associateNumber: formData.get('associateNumber'),
+      nip: formData.get('nip'),
+      redirectTo: safeCallbackPath(formData.get('callbackUrl'), host),
+    });
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {

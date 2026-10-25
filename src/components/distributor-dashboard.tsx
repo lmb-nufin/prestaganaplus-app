@@ -2,16 +2,19 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "./ui/badge";
-import { CircleDollarSign, Download, Wallet } from "lucide-react";
+import { badgeVariants } from "./ui/badge";
+import { Ban, ChevronDown, CircleDollarSign, Download, Wallet } from "lucide-react";
 import { Progress } from "./ui/progress";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { PaymentOptionsDialog } from "./payment-options-dialog";
 import Link from "next/link";
 import { AlertTriangle, PlusCircle } from "lucide-react";
-import type { PhoneCollection, PhoneState } from "@/lib/types";
+import type { IssuancePause, PhoneCollection, PhoneState } from "@/lib/types";
 import { PhoneTrackerCard } from "./phone-tracker";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
+import { useToast } from "@/hooks/use-toast";
 
 
 const InfoItem = ({ label, value }: { label: string; value: string | number }) => (
@@ -21,26 +24,34 @@ const InfoItem = ({ label, value }: { label: string; value: string | number }) =
     </div>
 );
 
+// La cuota del teléfono va dentro de la línea: el aviso habla de un pago vencido, no de una deuda aparte.
 const moraStyles = {
-    AVISO: { box: 'border-amber-300 bg-amber-50 text-amber-900', title: 'Pago del equipo pendiente' },
-    GRACIA: { box: 'border-orange-400 bg-orange-50 text-orange-900', title: 'Tu equipo está en periodo de gracia' },
-    BLOQUEO: { box: 'border-destructive/40 bg-destructive/10 text-destructive', title: 'Pago del equipo vencido' },
+    AVISO: { box: 'border-amber-300 bg-amber-50 text-amber-900', title: 'Pago vencido', next: 'Págalo para evitar el bloqueo de tu Teléfono PrestaGana.' },
+    GRACIA: { box: 'border-orange-400 bg-orange-50 text-orange-900', title: 'Estás en periodo de gracia', next: 'Págalo para evitar el bloqueo de tu Teléfono PrestaGana.' },
+    BLOQUEO: { box: 'border-destructive/40 bg-destructive/10 text-destructive', title: 'Pago vencido', next: 'Págalo para quitar las limitaciones de tu Teléfono PrestaGana.' },
+} as const;
+
+const statusStyles = {
+    ok: { text: 'text-accent', card: 'bg-accent/10 border-accent/20' },
+    warning: { text: 'text-amber-600', card: 'bg-amber-50 border-amber-200' },
+    late: { text: 'text-destructive', card: 'bg-destructive/10 border-destructive/20' },
 } as const;
 
 const CurrentStatusCard = ({ data, phoneState }: { data: any; phoneState: PhoneState | null }) => {
-    const isLate = data.paymentStatus.status === 'Atrasada';
-    const statusColor = isLate ? 'text-destructive' : 'text-accent';
-    const bgColor = isLate ? 'bg-destructive/10' : 'bg-accent/10';
-    const borderColor = isLate ? 'border-destructive/20' : 'border-accent/20';
+    const mora = phoneState?.mora;
+    // Con mora nunca se muestra "Al Día": AVISO es un pago vencido (ámbar); gracia o bloqueo, atrasada (rojo).
+    const isLate = data.paymentStatus.status === 'Atrasada' || mora?.nivel === 'GRACIA' || mora?.nivel === 'BLOQUEO';
+    const tone = isLate ? 'late' : mora ? 'warning' : 'ok';
+    const statusLabel = isLate ? 'Atrasada' : mora ? 'Pago vencido' : data.paymentStatus.status;
+    const statusColor = statusStyles[tone].text;
 
     // Desglose: amountDue incluye la cuota del teléfono y, si hay, su mora.
     const phone: PhoneCollection | undefined = data.telefono;
-    const mora = phoneState?.mora;
     const phoneDue = phone ? phone.pagoQuincenal + (mora?.monto ?? 0) : 0;
     const valesDue = Math.max(data.paymentStatus.amountDue - phoneDue, 0);
 
     return (
-        <Card className={`shadow-sm ${bgColor} ${borderColor} flex flex-col`}>
+        <Card className={`shadow-sm ${statusStyles[tone].card} flex flex-col`}>
             <CardHeader className="p-3 pb-2">
                 <CardTitle className="font-headline text-sm font-bold flex items-center gap-2">
                     <CircleDollarSign className="h-5 w-5"/>
@@ -50,7 +61,7 @@ const CurrentStatusCard = ({ data, phoneState }: { data: any; phoneState: PhoneS
             <CardContent className="grid grid-cols-2 gap-x-4 gap-y-1 p-3 pt-0 flex-grow">
                 <div className="text-center">
                     <p className="text-xs text-muted-foreground">Estatus</p>
-                    <p className={`font-bold text-sm ${statusColor}`}>{data.paymentStatus.status}</p>
+                    <p className={`font-bold text-sm ${statusColor}`} data-testid="payment-status">{statusLabel}</p>
                 </div>
                  <div className="text-center">
                     <p className="text-xs text-muted-foreground">Monto a Pagar</p>
@@ -84,9 +95,7 @@ const CurrentStatusCard = ({ data, phoneState }: { data: any; phoneState: PhoneS
                             {moraStyles[mora.nivel].title}
                         </p>
                         <p className="mt-0.5">
-                            Debes {formatCurrency(mora.monto)} del equipo ({mora.dias} {mora.dias === 1 ? 'día' : 'días'} de atraso).
-                            {mora.nivel === 'AVISO' && ' Págalo para evitar cargos y limitaciones.'}
-                            {mora.nivel === 'GRACIA' && ' Ponte al corriente antes de que termine el periodo de gracia.'}
+                            Tienes un pago vencido de {formatCurrency(mora.monto)} ({mora.dias} {mora.dias === 1 ? 'día' : 'días'}). {moraStyles[mora.nivel].next}
                         </p>
                         <div className="mt-2">
                             <PaymentOptionsDialog paymentReferences={data.paymentReferences} />
@@ -104,18 +113,34 @@ const CurrentStatusCard = ({ data, phoneState }: { data: any; phoneState: PhoneS
     );
 }
 
-const LineDataCard = ({ data }: { data: any }) => {
+const LineDataCard = ({ data, issuancePause }: { data: any; issuancePause: IssuancePause | null }) => {
+    const { toast } = useToast();
     const disposedPercentage = (data.creditLine.placed / data.creditLine.limit) * 100;
     return (
         <Card className="shadow-md border border-primary">
             <CardHeader className="flex flex-row items-center justify-between p-3">
                 <CardTitle className="font-headline text-base">Línea PrestaGana</CardTitle>
-                <Button size="sm" className="border-2 border-primary-foreground/50" asChild>
-                    <Link href="/vales/nuevo">
+                {issuancePause ? (
+                    // Emisión en pausa: se ve gris, no navega y explica por qué.
+                    <Button
+                        size="sm"
+                        type="button"
+                        aria-disabled="true"
+                        data-testid="line-new-vale-paused"
+                        className="border-2 border-muted bg-muted text-muted-foreground shadow-none hover:bg-muted"
+                        onClick={() => toast({ title: issuancePause.title, description: issuancePause.message })}
+                    >
                         <PlusCircle />
                         Vale Nuevo
-                    </Link>
-                </Button>
+                    </Button>
+                ) : (
+                    <Button size="sm" className="border-2 border-primary-foreground/50" asChild>
+                        <Link href="/vales/nuevo">
+                            <PlusCircle />
+                            Vale Nuevo
+                        </Link>
+                    </Button>
+                )}
             </CardHeader>
             <CardContent className="p-3 pt-0">
                 <div className="space-y-1">
@@ -170,68 +195,47 @@ const CollectionReportCard = ({ data }: { data: any }) => (
     </Card>
 );
 
-const DistributorInfoCard = ({ data }: { data: any }) => (
-     <Card className="shadow-sm">
-        <CardHeader className="p-3 pb-2">
-             <CardTitle className="font-headline text-sm font-bold">
-                Datos de la Asociada
-             </CardTitle>
-        </CardHeader>
-        <CardContent className="p-3 pt-1 text-xs space-y-2">
-            <p className="font-semibold text-base leading-tight">{data.associateInfo.name}</p>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-1">
-                <InfoItem label="No. Asociada" value={data.associateInfo.associateNumber} />
-                <InfoItem label="Sucursal" value={data.associateInfo.branch} />
-                <InfoItem label="Fecha de Alta" value={new Date(data.associateInfo.activationDate).toLocaleDateString('es-MX', { timeZone: 'UTC' })} />
-                <InfoItem label="Colocación Promedio" value={formatCurrency(data.associateInfo.monthlyPlacementAvg)} />
-            </div>
-        </CardContent>
-    </Card>
-);
+// La API manda el nivel como "Nivel Senior"; el badge solo muestra "Senior" o "Junior".
+const levelLabel = (name?: string) => name?.replace(/^nivel\s+/i, '').trim() || null;
 
-const ProfileCard = ({ data }: { data: any }) => (
-     <Card className="shadow-sm flex flex-col justify-center">
-        <CardHeader className="p-3 pb-2">
-            <CardTitle className="font-headline text-sm font-bold text-center">
-                Nivel
-            </CardTitle>
-        </CardHeader>
-        <CardContent className="p-3 pt-0 flex flex-col items-center justify-center space-y-1">
-             <div className="relative w-16 h-16">
-                <svg viewBox="0 0 120 120" className="absolute inset-0 w-full h-full">
-                    <circle cx="60" cy="60" r="54" stroke="hsl(var(--primary))" strokeWidth="4" fill="hsl(var(--card))" />
-                </svg>
-                <div className="relative z-10 w-full h-full flex items-center justify-center">
-                    <svg
-                        className="w-12 h-12 text-primary"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                        >
-                        <path
-                            fillRule="evenodd"
-                            clipRule="evenodd"
-                            d="M12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2ZM9 7C9 5.34315 10.3431 4 12 4C13.6569 4 15 5.34315 15 7C15 8.65685 13.6569 10 12 10C10.3431 10 9 8.65685 9 7Z"
-                        />
-                        <path
-                            d="M5.62062 14.0049C3.4934 14.5492 2 16.2736 2 18.5V19C2 19.5523 2.44772 20 3 20H21C21.5523 20 22 19.5523 22 19V18.5C22 16.2736 20.5066 14.5492 18.3794 14.0049C16.9234 15.6516 14.6127 16.75 12 16.75C9.38729 16.75 7.07663 15.6516 5.62062 14.0049Z"
-                        />
-                        <path
-                            fillRule="evenodd"
-                            clipRule="evenodd"
-                            d="M12 16.75L15.09 19.25L14.25 15.5L17 13.25L13.24 12.9L12 9.5L10.76 12.9L7 13.25L9.75 15.5L8.91 19.25L12 16.75Z"
-                            fill="hsl(var(--accent))"
-                        />
-                    </svg>
+// Colapsada por default: título, nivel y nombre; al tocarla muestra el resto de los datos.
+const DistributorInfoCard = ({ data }: { data: any }) => {
+    const level = levelLabel(data.associateLevel?.name);
+    return (
+    <Card className="shadow-sm">
+        <Collapsible>
+            <CollapsibleTrigger
+                className="group flex min-h-11 w-full items-center justify-between gap-3 rounded-lg p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                data-testid="associate-info-toggle"
+            >
+                <span className="space-y-2">
+                    <span className="flex items-center gap-2">
+                        <span className="font-headline text-sm font-bold">Datos de la Asociada</span>
+                        {level && (
+                            <span className={badgeVariants({ variant: 'secondary' })} data-testid="associate-level">
+                                {level}
+                            </span>
+                        )}
+                    </span>
+                    <span className="block font-semibold text-base leading-tight">{data.associateInfo.name}</span>
+                </span>
+                <ChevronDown className="h-5 w-5 flex-shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent
+                className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down"
+                data-testid="associate-info-details"
+            >
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 p-3 pt-0 text-xs">
+                    <InfoItem label="No. Asociada" value={data.associateInfo.associateNumber} />
+                    <InfoItem label="Sucursal" value={data.associateInfo.branch} />
+                    <InfoItem label="Fecha de Alta" value={new Date(data.associateInfo.activationDate).toLocaleDateString('es-MX', { timeZone: 'UTC' })} />
+                    <InfoItem label="Colocación Promedio" value={formatCurrency(data.associateInfo.monthlyPlacementAvg)} />
                 </div>
-            </div>
-            <div className="text-center">
-               
-                <h3 className="font-headline text-base font-semibold mt-1">{data.associateLevel.name}</h3>
-            </div>
-        </CardContent>
+            </CollapsibleContent>
+        </Collapsible>
     </Card>
-);
+    );
+};
 
 export const DistributorDashboardSkeleton = () => (
     <div className="container mx-auto p-2 md:p-3 pb-20 md:pb-8">
@@ -249,7 +253,15 @@ export const DistributorDashboardSkeleton = () => (
     </div>
 );
 
-export default function DistributorDashboard({ distributorData, phoneState = null }: { distributorData: any; phoneState?: PhoneState | null }) {
+export default function DistributorDashboard({
+    distributorData,
+    phoneState = null,
+    issuancePause = null,
+}: {
+    distributorData: any;
+    phoneState?: PhoneState | null;
+    issuancePause?: IssuancePause | null;
+}) {
     const getFirstName = (fullName: string) => {
         if (!fullName) return '';
         const nameParts = fullName.split(' ');
@@ -267,12 +279,18 @@ export default function DistributorDashboard({ distributorData, phoneState = nul
                     <p className="text-sm text-muted-foreground">Qué bueno verte de nuevo.</p>
                 </div>
                 <div className="flex flex-col gap-3">
-                    <LineDataCard data={distributorData} />
+                    {issuancePause && (
+                        <Alert variant="destructive" data-testid="issuance-paused">
+                            <Ban className="h-4 w-4" />
+                            <AlertTitle>{issuancePause.title}</AlertTitle>
+                            <AlertDescription>{issuancePause.message}</AlertDescription>
+                        </Alert>
+                    )}
+                    <LineDataCard data={distributorData} issuancePause={issuancePause} />
                     <CurrentStatusCard data={distributorData} phoneState={phoneState} />
                     <PhoneTrackerCard phoneState={phoneState} />
                     <CollectionReportCard data={distributorData} />
                     <DistributorInfoCard data={distributorData} />
-                    <ProfileCard data={distributorData} />
                 </div>
             </main>
         </div>

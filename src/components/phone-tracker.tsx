@@ -71,17 +71,21 @@ export function PhoneTrackerCard({ phoneState }: { phoneState: PhoneState | null
                 {STEPS[currentIndex].todo}
               </p>
             )}
+            {/* Equipo reportado o revocado: el "Qué sigue" explica que no se emite hasta reactivarlo. */}
+            {reported && (
+              <p className="flex items-start gap-2 rounded-md bg-destructive/10 p-2 text-xs text-destructive" data-testid="phone-reported">
+                <Ban className="h-4 w-4 flex-shrink-0" />
+                <span>
+                  <span className="font-semibold">Qué sigue: </span>
+                  {dispositivo?.estatus === 'REVOCADO' ? 'Equipo desactivado' : 'Equipo reportado'}. No puedes emitir vales desde este equipo hasta reactivarlo en sucursal.
+                </span>
+              </p>
+            )}
           </>
         )}
         {dispositivo && (
           <p className="text-xs text-muted-foreground">
             {dispositivo.modelo} · IMEI terminación {dispositivo.ultimos4Imei}
-          </p>
-        )}
-        {reported && (
-          <p className="flex items-start gap-2 rounded-md bg-destructive/10 p-2 text-xs text-destructive" data-testid="phone-reported">
-            <Ban className="h-4 w-4 flex-shrink-0" />
-            Tu equipo está reportado y la emisión de vales está bloqueada. Acude a sucursal para reactivar.
           </p>
         )}
       </CardContent>

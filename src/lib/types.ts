@@ -105,6 +105,9 @@ export type IssuanceMode =
   | { mode: 'EQUIPO' }
   | { mode: 'BLOQUEADA'; message: string };
 
+// Aviso del dashboard y de los botones de Vale Nuevo cuando la emisión está BLOQUEADA.
+export type IssuancePause = { title: string; message: string };
+
 export type PhoneOfferBlockReason = 'NO_ELEGIBLE' | 'SOLICITUD_ABIERTA' | 'EQUIPO' | 'NO_DISPONIBLE';
 
 // Lo que llega al cliente para la tarjeta y la pantalla de oferta.
