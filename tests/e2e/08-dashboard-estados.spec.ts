@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { NIP, captureNextServerAction, confirmNewVale, fillNewClientForm, login, replayServerAction } from './helpers';
+import { NIP, captureNextServerAction, confirmNewVale, fillNewClientForm, login, openPhoneTracker, replayServerAction } from './helpers';
 
 const ALL_DEMO = Array.from({ length: 17 }, (_, i) => String(1000001 + i));
 const PAUSED_MESSAGE = 'Reportaste tu Teléfono PrestaGana. Acude a tu sucursal para reactivarlo.';
@@ -50,6 +50,7 @@ test.describe('Equipo reportado (1000012): emisión en pausa en el dashboard', (
     const paused = page.getByTestId('issuance-paused');
     await expect(paused).toContainText('Emisión de vales en pausa.');
     await expect(paused).toContainText(PAUSED_MESSAGE);
+    await openPhoneTracker(page);
     await expect(page.getByTestId('phone-reported')).toContainText(
       'Equipo reportado. No puedes emitir vales desde este equipo hasta reactivarlo en sucursal.'
     );
@@ -121,6 +122,25 @@ test.describe('Sin cambios para las demás asociadas', () => {
       await expect(page).toHaveURL(/\/vales\/nuevo/);
     });
   }
+});
+
+test.describe('Mi Teléfono PrestaGana', () => {
+  test('colapsada por default con el resumen; se expande con el avance', async ({ context, page }) => {
+    await login(context, '1000011');
+    await page.goto('/');
+    const toggle = page.getByTestId('phone-tracker-toggle');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(toggle.getByTestId('phone-tracker-summary')).toHaveText('Activo · paso 5 de 5');
+    await expect(toggle).toContainText('Samsung Galaxy A17');
+    expect((await toggle.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await expect(page.getByTestId('phone-tracker-todo')).toHaveCount(0);
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByTestId('phone-tracker-current')).toHaveText(/Activo/);
+    await expect(page.getByTestId('phone-tracker-todo')).toBeVisible();
+    await expect(page.getByTestId('phone-tracker')).toContainText('Folio TEL-1000011-DEMO');
+  });
 });
 
 test.describe('Datos de la Asociada', () => {

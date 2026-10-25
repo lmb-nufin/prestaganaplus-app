@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { login } from './helpers';
+import { login, openPhoneTracker } from './helpers';
 
 test.describe('Solicitud del teléfono', () => {
   test('crea folio, aparece el tracker y una segunda pestaña ya no puede solicitar', async ({ context, page }) => {
@@ -28,6 +28,8 @@ test.describe('Solicitud del teléfono', () => {
     await page.goto('/');
     const tracker = page.getByTestId('phone-tracker');
     await expect(tracker).toBeVisible();
+    await expect(tracker.getByTestId('phone-tracker-summary')).toHaveText('Solicitado · paso 1 de 5');
+    await openPhoneTracker(page);
     await expect(tracker.getByTestId('phone-tracker-current')).toHaveText(/Solicitado/);
     await expect(tracker.getByTestId('phone-tracker-todo')).toContainText('Transfiere el enganche a la CLABE de tu línea. Se registra automáticamente.');
 
@@ -39,6 +41,8 @@ test.describe('Solicitud del teléfono', () => {
   test('la solicitud cancelada permite volver a solicitar', async ({ context, page }) => {
     await login(context, '1000017');
     await page.goto('/');
+    await expect(page.getByTestId('phone-tracker-summary')).toHaveText('Solicitud cancelada');
+    await openPhoneTracker(page);
     await expect(page.getByTestId('phone-tracker-cancelled')).toBeVisible();
     await page.goto('/telefono');
     await expect(page.getByTestId('plan-12')).toBeVisible();

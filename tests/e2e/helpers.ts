@@ -122,3 +122,9 @@ export function tamperDeviceSignature(action: CapturedAction) {
   expect(tampered).not.toBe(action.body);
   return tampered;
 }
+
+/** Abre la tarjeta "Mi Teléfono PrestaGana" del dashboard (está colapsada por default). */
+export async function openPhoneTracker(page: Page) {
+  const toggle = page.getByTestId('phone-tracker-toggle');
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+}

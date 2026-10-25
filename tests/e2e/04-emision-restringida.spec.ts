@@ -11,6 +11,7 @@ import {
   fillPersonalCash,
   login,
   replayServerAction,
+  openPhoneTracker,
   signWithOtp,
   stripDeviceSignature,
   tamperDeviceSignature,
@@ -144,6 +145,8 @@ test.describe('Equipo REPORTADO', () => {
     await expect(page.getByTestId('issuance-blocked')).toContainText(DEVICE_REPORTED);
     await expect(page.getByRole('button', { name: 'Enviar Código de Firma' })).toHaveCount(0);
     await page.goto('/');
+    await expect(page.getByTestId('phone-tracker-summary')).toHaveText('Equipo reportado');
+    await openPhoneTracker(page);
     await expect(page.getByTestId('phone-reported')).toContainText('Equipo reportado. No puedes emitir vales desde este equipo hasta reactivarlo en sucursal.');
   });
 });

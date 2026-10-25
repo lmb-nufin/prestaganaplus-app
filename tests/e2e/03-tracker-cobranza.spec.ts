@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { login } from './helpers';
+import { login, openPhoneTracker } from './helpers';
 
 const TRACKER_CASES = [
   { associate: '1000007', step: 'Solicitado', todo: 'Transfiere el enganche' },
@@ -15,6 +15,8 @@ test.describe('Tracker en el dashboard', () => {
       await login(context, associate);
       await page.goto('/');
       const tracker = page.getByTestId('phone-tracker');
+      await expect(tracker.getByTestId('phone-tracker-summary')).toContainText(step);
+      await openPhoneTracker(page);
       await expect(tracker.getByTestId('phone-tracker-current')).toHaveText(new RegExp(step));
       await expect(tracker.locator('[aria-current="step"]')).toHaveCount(1);
       await expect(tracker.getByTestId('phone-tracker-todo')).toContainText(todo);

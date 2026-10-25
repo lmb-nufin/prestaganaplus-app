@@ -33,6 +33,11 @@ Asociada demo 1000013.
 - Mismo estilo de tarjeta. "Relación de Cobro" y el resto no se tocan.
 - **Cambio de alcance (pedido del dueño):** la tarjeta "Nivel" se quita. El nivel pasa a un badge junto al título de la tarjeta colapsada, solo con "Senior" o "Junior" (se quita el prefijo "Nivel " que manda la API). Si la API no manda nivel, no hay badge.
 
+## 4b. "Mi Teléfono PrestaGana" desplegable (pedido del dueño)
+- Por default **colapsada**: título, resumen del estado actual ("{paso} · paso n de 5", "Equipo reportado"/"Equipo desactivado" o "Solicitud cancelada") y el modelo si ya hay equipo. Chevron a la derecha.
+- Al tocarla se expande y muestra lo de hoy: folio, avance de 5 pasos, "Qué sigue" e IMEI.
+- Mismo patrón que "Datos de la Asociada": `Collapsible`, `aria-expanded`, área táctil ≥44px, animación.
+
 ## 5. Pruebas (DEMO_MODE=true, Playwright, 390x844)
 - Login → `/` con campana (todas las asociadas demo).
 - 1000012: aviso visible, Vale Nuevo deshabilitado en la tarjeta y en la barra, mensaje al tocar. Llamar la server action directo sigue siendo rechazado.
