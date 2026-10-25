@@ -16,6 +16,8 @@ export function safeCallbackPath(raw: unknown, host: string | null): string {
   const isRelative = raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/\\');
   const isSameHost = !isRelative && !!host && url.host === host && /^https?:$/.test(url.protocol);
   if (!isRelative && !isSameHost) return '/';
+  // "/.//otro" se normaliza a "//otro": tras parsear se revisa de nuevo.
+  if (url.pathname.startsWith('//') || url.pathname.startsWith('/\\')) return '/';
   if (PUBLIC_PATHS.includes(url.pathname)) return '/';
   return `${url.pathname}${url.search}`;
 }

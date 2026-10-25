@@ -33,12 +33,14 @@ test.describe('Login termina en el dashboard con la URL correcta', () => {
     await expect(page).toHaveURL(/\/vales$/);
   });
 
-  test('ignora un callbackUrl externo', async ({ page }) => {
-    await page.goto('/login?callbackUrl=https%3A%2F%2Fexample.com%2Fphish');
-    await loginWithForm(page, '1000001');
-    await expect(page).toHaveURL(/localhost:\d+\/$/);
-    await expectBellNotBack(page);
-  });
+  for (const external of ['https%3A%2F%2Fexample.com%2Fphish', '%2F.%2F%2Fexample.com', '%2F%5Cexample.com']) {
+    test(`ignora un callbackUrl externo (${external})`, async ({ page }) => {
+      await page.goto(`/login?callbackUrl=${external}`);
+      await loginWithForm(page, '1000001');
+      await expect(page).toHaveURL(/localhost:\d+\/$/);
+      await expectBellNotBack(page);
+    });
+  }
 });
 
 test.describe('Equipo reportado (1000012): emisión en pausa en el dashboard', () => {
