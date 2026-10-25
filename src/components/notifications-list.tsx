@@ -1,73 +1,69 @@
-
-import { Bell, Fuel, Gift, Wrench, Trash2, CheckCircle2 } from "lucide-react";
+import { Bell, Wallet, FileText, Smartphone, Trash2, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import type { AppNotification, NotificationType } from "@/lib/notifications-data";
 
-const iconMap = {
-  vale: <Fuel className="h-5 w-5" />,
-  reminder: <Bell className="h-5 w-5" />,
-  reward: <Gift className="h-5 w-5" />,
-  maintenance: <Wrench className="h-5 w-5" />,
+const iconMap: Record<NotificationType, React.ElementType> = {
+  pago: Wallet,
+  vale: FileText,
+  telefono: Smartphone,
+  aviso: Bell,
 };
 
-export const NotificationsList = ({ messages, isUnread, onRemove, onNotificationClick }) => {
+type Props = {
+  messages: AppNotification[];
+  isUnread: boolean;
+  emptyText: string;
+  onRemove: (id: string) => void;
+  onNotificationClick: (message: AppNotification) => void;
+};
+
+export const NotificationsList = ({ messages, isUnread, emptyText, onRemove, onNotificationClick }: Props) => {
+  if (messages.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-12 text-center text-sm text-muted-foreground">
+        <Inbox className="h-8 w-8 text-muted-foreground/60" />
+        {emptyText}
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-1.5 p-2">
-      {messages.map((message) => (
-        <div 
-          key={message.id} 
-          className="block transition-transform active:scale-[0.98] cursor-pointer group"
-          onClick={() => onNotificationClick(message, isUnread)}
-        >
-          <Card className="bg-card shadow-sm hover:bg-muted/50">
-            <CardContent className="p-2">
-                <div className="flex items-start gap-3">
-                    {/* Columna 1: Indicador de Estado */}
-                    <div className="flex-shrink-0 pt-1">
-                        {isUnread ? (
-                        <div className="h-2.5 w-2.5 rounded-full bg-primary" />
-                        ) : (
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        )}
-                    </div>
-
-                    {/* Columna 2: Contenido Principal */}
-                    <div className="flex-grow">
-                        <div className="flex items-center gap-3">
-                            <div className="text-muted-foreground">{iconMap[message.type] || <Bell className="h-5 w-5" />}</div>
-                            <div className="flex-1">
-                                <p className={cn("font-medium text-sm", isUnread ? "text-foreground" : "text-muted-foreground")}>
-                                {message.title}
-                                </p>
-                                <p className={cn("text-xs", isUnread ? "text-muted-foreground" : "text-muted-foreground/80")}>
-                                {message.message}
-                                </p>
-                            </div>
-                        </div>
-                        <p className="text-xs text-left text-muted-foreground/70 group-hover:text-muted-foreground mt-1">
-                            {message.time}
-                        </p>
-                    </div>
-
-                    {/* Columna 3: Botón de Eliminar */}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 -my-1 opacity-0 group-hover:opacity-100 transition-opacity self-center"
-                        onClick={(e) => {
-                        e.stopPropagation();
-                        onRemove(message.id);
-                        }}
-                    >
-                        <Trash2 className="h-4 w-4 text-muted-foreground" />
-                        <span className="sr-only">Eliminar</span>
-                    </Button>
-              </div>
-            </CardContent>
+    <div className="space-y-2 pt-2">
+      {messages.map((message) => {
+        const Icon = iconMap[message.type] ?? Bell;
+        return (
+          <Card key={message.id} className="flex items-center gap-1 overflow-hidden shadow-sm">
+            <button
+              type="button"
+              onClick={() => onNotificationClick(message)}
+              className="flex min-w-0 flex-1 items-start gap-3 p-3 text-left transition-colors hover:bg-muted/50 active:bg-muted"
+            >
+              <span className="relative mt-0.5 flex-shrink-0 text-muted-foreground">
+                <Icon className="h-5 w-5" />
+                {isUnread && <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-card" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className={cn("block text-sm font-medium", isUnread ? "text-foreground" : "text-muted-foreground")}>
+                  {message.title}
+                </span>
+                <span className="block text-xs text-muted-foreground">{message.message}</span>
+                <span className="mt-1 block text-xs text-muted-foreground/70">{message.time}</span>
+              </span>
+            </button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mr-1 h-10 w-10 flex-shrink-0"
+              onClick={() => onRemove(message.id)}
+            >
+              <Trash2 className="h-4 w-4 text-muted-foreground" />
+              <span className="sr-only">Eliminar</span>
+            </Button>
           </Card>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };

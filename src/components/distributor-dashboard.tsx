@@ -94,9 +94,12 @@ const CurrentStatusCard = ({ data, phoneState }: { data: any; phoneState: PhoneS
                     </div>
                 )}
             </CardContent>
-            <CardFooter className="p-2 bg-transparent mt-auto border-t">
-                <PaymentOptionsDialog paymentReferences={data.paymentReferences} />
-            </CardFooter>
+            {/* Con mora, el botón de pago vive en el aviso; no se repite abajo. */}
+            {!mora && (
+                <CardFooter className="p-2 bg-transparent mt-auto border-t">
+                    <PaymentOptionsDialog paymentReferences={data.paymentReferences} />
+                </CardFooter>
+            )}
         </Card>
     );
 }
@@ -258,7 +261,7 @@ export default function DistributorDashboard({ distributorData, phoneState = nul
 
     return (
         <div className="flex flex-col">
-            <main className="flex-grow container mx-auto p-2 md:p-3 pb-28 md:pb-8">
+            <main className="flex-grow container mx-auto p-2 md:p-3 md:pb-8">
                 <div className="mb-4">
                     <h1 className="text-xl font-bold font-headline text-foreground/90">Hola, {firstName}</h1>
                     <p className="text-sm text-muted-foreground">Qué bueno verte de nuevo.</p>

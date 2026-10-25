@@ -173,8 +173,18 @@ function OfferForm({
             </Alert>
           )}
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex-col gap-2">
           <SubmitButton disabled={quincenas === null || !accepted} />
+          {/* Explica por qué el botón sigue deshabilitado. */}
+          {(quincenas === null || !accepted) && (
+            <p className="text-center text-xs text-muted-foreground" data-testid="phone-submit-hint">
+              {quincenas === null && !accepted
+                ? 'Elige tu plazo y acepta las condiciones para solicitar.'
+                : quincenas === null
+                  ? 'Elige tu plazo para solicitar.'
+                  : 'Acepta las condiciones para solicitar.'}
+            </p>
+          )}
         </CardFooter>
       </Card>
     </form>
@@ -219,7 +229,7 @@ function RequestConfirmation({ folio, downPayment, stpClabe }: { folio: string; 
             <div className="mt-1 flex items-center justify-between gap-2">
               <span className="text-muted-foreground">CLABE (STP)</span>
               <span className="font-mono font-semibold" data-testid="phone-clabe">{stpClabe}</span>
-              <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={copyClabe} aria-label="Copiar CLABE">
+              <Button type="button" size="icon" variant="ghost" className="h-9 w-9 flex-shrink-0" onClick={copyClabe} aria-label="Copiar CLABE">
                 {copied ? <Check className="h-4 w-4 text-accent" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>

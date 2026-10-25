@@ -62,6 +62,14 @@ export function DeviceGate({
         <AlertDescription className="space-y-1 text-indigo-800">
           <p>{DEVICE_ONLY_MESSAGE}</p>
           <p className="text-xs">Consultar saldo, pagar y soporte funcionan desde cualquier dispositivo.</p>
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Button asChild size="sm" variant="outline">
+              <Link href="/">Ir al inicio</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/soporte">Ir a Soporte</Link>
+            </Button>
+          </div>
         </AlertDescription>
       </Alert>
     );

@@ -13,7 +13,8 @@ export default async function SignPage({ params }: { params: { folio: string } }
   const vale = await getValeByFolio(params.folio);
   
   if (!vale) {
-    redirect('/vales'); 
+    // Se avisa en Vales en lugar de redirigir sin explicación.
+    redirect('/vales?aviso=folio-no-encontrado');
   }
 
   const session = await auth();

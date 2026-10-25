@@ -1,8 +1,9 @@
 
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Poppins, PT_Sans } from "next/font/google";
 import "./globals.css";
 import { NotificationsProvider } from "@/context/notifications-context";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
 const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-poppins" });
@@ -11,6 +12,13 @@ const ptSans = PT_Sans({ subsets: ["latin"], weight: ["400", "700"], variable: "
 export const metadata: Metadata = {
   title: "PrestaGana",
   description: "Plataforma de gestión de personal y contratistas",
+};
+
+// viewportFit "cover" habilita env(safe-area-inset-*) para la barra inferior en iPhone.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -23,6 +31,7 @@ export default function RootLayout({
         <NotificationsProvider>
           {children}
         </NotificationsProvider>
+        <Toaster />
       </body>
     </html>
   );

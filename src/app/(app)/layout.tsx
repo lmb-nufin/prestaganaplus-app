@@ -9,8 +9,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex flex-col min-h-screen">
             <Header />
-            {/* La etiqueta main ahora vive aquí y envuelve a todos los children */}
-            <main className="flex-1">
+            {/* El padding inferior deja libre la barra de navegación fija (y la zona del indicador de inicio en iPhone). */}
+            <main className="flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
                 {children}
             </main>
             <BottomNavBar />

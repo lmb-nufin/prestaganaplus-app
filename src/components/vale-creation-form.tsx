@@ -6,7 +6,7 @@ import { useFormStatus } from 'react-dom';
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useRouter } from 'next/navigation';
-import { Calendar as CalendarIcon, Loader2, PlusCircle, AlertTriangle, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, PlusCircle, AlertTriangle, AlertCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,8 +36,6 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 
 type ValeFormProps = {
-  onFormSuccess?: () => void;
-  onBack: () => void;
   existingClientData?: ExistingClient | null;
   // Con emisión restringida, el envío lleva la firma del equipo (miniapp).
   deviceSignatureRequired?: boolean;
@@ -72,7 +70,7 @@ const signatureContext = (form: HTMLFormElement) => ({
   monto: Number(new FormData(form).get('loanAmount')),
 });
 
-export function ValeCreationForm({ onFormSuccess, onBack, existingClientData = null, deviceSignatureRequired = false }: ValeFormProps) {
+export function ValeCreationForm({ existingClientData = null, deviceSignatureRequired = false }: ValeFormProps) {
   const [state, formAction] = useActionState(createVale, initialState);
   const deviceSignature = useDeviceSignedSubmit(deviceSignatureRequired, signatureContext);
   const { toast } = useToast();
@@ -116,17 +114,6 @@ export function ValeCreationForm({ onFormSuccess, onBack, existingClientData = n
   
   return (
     <div className="flex flex-col">
-      {isRenewedFlow && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onBack}
-          className="text-muted-foreground -ml-2 mb-2 self-start"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Volver a búsqueda
-        </Button>
-      )}
 
       <form id="vale-creation-form" action={formAction} onSubmit={deviceSignature.onSubmit} className="space-y-4">
         <input type="hidden" name="deviceId" value={auditData.deviceId} />

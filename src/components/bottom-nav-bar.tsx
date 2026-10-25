@@ -27,7 +27,7 @@ const NavLink = ({
   icon: React.ElementType;
 }) => {
   const pathname = usePathname();
-  const isActive = pathname === href;
+  const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
 
   return (
     <Link href={href} passHref className="flex-1">
@@ -68,8 +68,8 @@ const NewValeButton = () => {
 
 export default function BottomNavBar() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 h-16 border-t bg-background md:hidden">
-      <div className="container mx-auto flex h-full items-center justify-between px-0">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden">
+      <div className="container mx-auto flex h-16 items-center justify-between px-0">
         <div className="flex flex-1 justify-around">
           {navItemsLeft.map(item => (
             <NavLink key={item.href} {...item} />

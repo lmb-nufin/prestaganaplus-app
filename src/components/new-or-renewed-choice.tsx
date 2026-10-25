@@ -23,7 +23,7 @@ const blockLabels: Record<PersonalLoanBlockReason, string> = {
 export function NewOrRenewedChoice({ onChoice, personalLoan, phoneOfferAvailable = false }: NewOrRenewedChoiceProps) {
   const personalEnabled = personalLoan.eligible || phoneOfferAvailable;
   return (
-    <div className="p-4 space-y-3">
+    <div className="space-y-3">
       <Button
         variant="outline"
         className="w-full h-auto min-h-20 flex items-center justify-start p-4 whitespace-normal"

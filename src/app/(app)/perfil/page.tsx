@@ -77,7 +77,7 @@ async function ProfileContent() {
                                 <DialogHeader className="p-4 pb-0">
                                     <DialogTitle className="font-headline">Restablecer NIP</DialogTitle>
                                     <DialogDescription>
-                                        Ponte en contacto con soporte para recibir ayuda.
+                                        Verifica tu identidad y te enviaremos un NIP nuevo por SMS.
                                     </DialogDescription>
                                 </DialogHeader>
                                 <ForgotNipForm />

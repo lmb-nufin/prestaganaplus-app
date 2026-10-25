@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import Logo from '@/components/logo';
 import { LoginForm } from './login-form';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,8 @@ export default function LoginPage() {
     setTimeout(() => setIsAnimating(false), 3000);
   };
 
+  const handleAuthError = useCallback(() => setIsAnimating(false), []);
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 overflow-hidden">
       <div className="relative w-full max-w-sm">
@@ -39,7 +41,7 @@ export default function LoginPage() {
           "w-full transition-opacity duration-500",
           isAnimating ? "opacity-0 pointer-events-none" : "opacity-100"
         )}>
-          <LoginForm onLoginClick={handleLoginClick} />
+          <LoginForm onLoginClick={handleLoginClick} onAuthError={handleAuthError} />
         </div>
       </div>
     </div>

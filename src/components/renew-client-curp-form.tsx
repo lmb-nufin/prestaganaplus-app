@@ -5,19 +5,19 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/label-input';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { Search, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Search, Loader2, AlertCircle } from 'lucide-react';
 import { getClientByCurp } from '@/app/actions';
 import type { ExistingClient } from '@/lib/types';
 import { Label } from './ui/label';
 
 interface RenewClientCurpFormProps {
-  onCurpSuccess: (clientData: ExistingClient) => void;
-  onBack: () => void;
+  onCurpSuccess: (clientData: ExistingClient, curp: string) => void;
+  initialCurp?: string;
 }
 
-export function RenewClientCurpForm({ onCurpSuccess, onBack }: RenewClientCurpFormProps) {
-  const [curp, setCurp] = useState('');
-  const [curpConfirm, setCurpConfirm] = useState('');
+export function RenewClientCurpForm({ onCurpSuccess, initialCurp = '' }: RenewClientCurpFormProps) {
+  const [curp, setCurp] = useState(initialCurp);
+  const [curpConfirm, setCurpConfirm] = useState(initialCurp);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +47,7 @@ export function RenewClientCurpForm({ onCurpSuccess, onBack }: RenewClientCurpFo
     setIsLoading(false);
 
     if (result.success && result.data) {
-      onCurpSuccess(result.data);
+      onCurpSuccess(result.data, curp);
     } else {
       setError(result.message);
     }
@@ -62,7 +62,7 @@ export function RenewClientCurpForm({ onCurpSuccess, onBack }: RenewClientCurpFo
   }
   
   return (
-    <form onSubmit={handleSubmit} className="p-4 space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
         <Label htmlFor="curp">CURP del Cliente</Label>
         <Input
@@ -110,10 +110,6 @@ export function RenewClientCurpForm({ onCurpSuccess, onBack }: RenewClientCurpFo
         <Button type="submit" disabled={isLoading || !curp || !curpConfirm || showMismatchError || showFormatError} className="w-full">
           {isLoading ? <Loader2 className="animate-spin" /> : <Search />}
           Buscar Cliente
-        </Button>
-        <Button type="button" variant="ghost" onClick={onBack} className="w-full" disabled={isLoading}>
-          <ArrowLeft />
-          Volver
         </Button>
       </div>
     </form>

@@ -62,8 +62,8 @@ function LoginFormContent({ onLoginClick }: { onLoginClick: () => void }) {
             aria-disabled={pending} 
             disabled={pending}
             onClick={(e) => {
-              // We call the animation trigger, but don't prevent form submission.
-              onLoginClick();
+              // Solo anima si el formulario se va a enviar (con campos vacíos el navegador lo detiene).
+              if (e.currentTarget.form?.checkValidity()) onLoginClick();
             }}
         >
             {pending ? <Loader2 className="animate-spin" /> : <LogIn />}
@@ -75,8 +75,13 @@ function LoginFormContent({ onLoginClick }: { onLoginClick: () => void }) {
 }
 
 
-export function LoginForm({ onLoginClick }: { onLoginClick: () => void }) {
+export function LoginForm({ onLoginClick, onAuthError }: { onLoginClick: () => void; onAuthError?: () => void }) {
   const [errorMessage, formAction] = useActionState(authenticate, undefined);
+
+  // Si la autenticación falla, regresa el formulario de inmediato para mostrar el error.
+  useEffect(() => {
+    if (errorMessage) onAuthError?.();
+  }, [errorMessage, onAuthError]);
 
   return (
     <div className="space-y-2">

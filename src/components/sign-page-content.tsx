@@ -1,4 +1,4 @@
-import { ArrowLeft, FileText, Ban } from 'lucide-react';
+import { FileText, List, Home } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
@@ -6,7 +6,7 @@ import Link from 'next/link';
 import type { IssuanceMode, Vale } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import Logo from '@/components/logo';
+import { SubPageHeader } from '@/components/sub-page-header';
 import { formatCurrency, parseDateOnly } from '@/lib/utils';
 import { DigitalVale } from '@/components/digital-vale';
 import { PersonalBadge } from '@/components/personal-badge';
@@ -37,18 +37,9 @@ export function SignPageContent({ vale, associateName, creditLine, issuance }: {
     const isSignedOrRedeemed = vale.status === 'FIRMADO' || vale.status === 'CANJEADO';
 
   return (
+    <>
+      <SubPageHeader title="Detalle del vale" backLabel="Volver a Vales" backHref="/vales" />
       <div className="container mx-auto max-w-md py-4 px-2">
-        <div className="flex justify-between items-center mb-2">
-          <Button variant="ghost" asChild size="sm">
-            <Link href="/vales">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver a Vales
-            </Link>
-          </Button>
-          <div className="md:hidden">
-            <Logo />
-          </div>
-        </div>
         <Card className="shadow-lg">
           <CardHeader className="p-4">
             <div className="flex items-start gap-3">
@@ -95,6 +86,19 @@ export function SignPageContent({ vale, associateName, creditLine, issuance }: {
           )}
 
         </Card>
+
+        {/* Ya firmado: siguiente paso claro en lugar de quedarse en la pantalla de firma. */}
+        {isSignedOrRedeemed && (
+          <div className="mt-4 grid grid-cols-2 gap-2" data-testid="sign-next-actions">
+            <Button variant="outline" asChild>
+              <Link href="/vales"><List />Mis vales</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/"><Home />Inicio</Link>
+            </Button>
+          </div>
+        )}
       </div>
+    </>
   );
 }
