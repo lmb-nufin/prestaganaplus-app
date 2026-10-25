@@ -1,5 +1,17 @@
 
-import type { Vale, ExistingClient, NipResetOtp, PersonalLoanInfo } from './types';
+import type {
+  Vale,
+  ExistingClient,
+  NipResetOtp,
+  PersonalLoanInfo,
+  PhoneOffer,
+  PhonePlan,
+  PhoneState,
+  PhoneRequestStatus,
+  DeviceOperation,
+  DeviceChallenge,
+  DeviceReportReason,
+} from './types';
 
 import { apiFetch } from './api';
 
@@ -359,3 +371,183 @@ function parsePersonalLoanInfo(raw: any): PersonalLoanInfo | null {
     folioActivo: typeof folioActivo === 'string' && folioActivo ? folioActivo : null,
   };
 }
+
+// ==================================================================
+// --- Teléfono financiado y firma del dispositivo ---
+// ==================================================================
+
+const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+const isText = (value: unknown): value is string => typeof value === 'string' && value.trim() !== '';
+const oneOf = <T extends string>(value: unknown, options: readonly T[]): value is T =>
+  typeof value === 'string' && (options as readonly string[]).includes(value);
+
+const REQUEST_STATUSES = ['SOLICITADO', 'ENGANCHE_CONFIRMADO', 'EN_PREPARACION', 'LISTO_PARA_RECOGER', 'ACTIVO', 'CANCELADO'] as const;
+const DEVICE_STATUSES = ['ACTIVO', 'BLOQUEADO', 'REPORTADO', 'REVOCADO'] as const;
+const MORA_LEVELS = ['AVISO', 'GRACIA', 'BLOQUEO'] as const;
+
+/** Valida la oferta. Sin precio, enganche o planes completos, regresa null (servicio no disponible). */
+function parsePhoneOffer(raw: any): PhoneOffer | null {
+  if (!raw || typeof raw !== 'object' || typeof raw.elegible !== 'boolean') return null;
+  const { modelo, precio, engancheMonto, planes } = raw;
+  if (!modelo || !isText(modelo.nombre) || !isText(modelo.almacenamiento) || typeof modelo.imagenUrl !== 'string') return null;
+  if (!isNumber(precio) || !isNumber(engancheMonto) || !Array.isArray(planes) || planes.length === 0) return null;
+  const planesValidos = planes.every(
+    (p: any) => p && Number.isInteger(p.quincenas) && isNumber(p.pagoQuincenal) && isNumber(p.totalPagar)
+  );
+  if (!planesValidos) return null;
+  return {
+    elegible: raw.elegible,
+    motivo: isText(raw.motivo) ? raw.motivo : undefined,
+    modelo: { nombre: modelo.nombre, almacenamiento: modelo.almacenamiento, imagenUrl: modelo.imagenUrl },
+    precio,
+    engancheMonto,
+    planes: planes
+      .map((p: any): PhonePlan => ({ quincenas: p.quincenas, pagoQuincenal: p.pagoQuincenal, totalPagar: p.totalPagar }))
+      .sort((a: PhonePlan, b: PhonePlan) => a.quincenas - b.quincenas),
+  };
+}
+
+/** Valida el estado. Cualquier campo presente con forma inesperada invalida toda la respuesta. */
+function parsePhoneState(raw: any): PhoneState | null {
+  if (!raw || typeof raw !== 'object' || typeof raw.emisionRestringida !== 'boolean') return null;
+  const state: PhoneState = { emisionRestringida: raw.emisionRestringida };
+  const { solicitud, dispositivo, cuotas, mora } = raw;
+  if (solicitud != null) {
+    if (!isText(solicitud.folio) || !oneOf(solicitud.estatus, REQUEST_STATUSES) || typeof solicitud.fecha !== 'string') return null;
+    state.solicitud = { folio: solicitud.folio, estatus: solicitud.estatus, fecha: solicitud.fecha };
+  }
+  if (dispositivo != null) {
+    if (!oneOf(dispositivo.estatus, DEVICE_STATUSES) || typeof dispositivo.modelo !== 'string') return null;
+    state.dispositivo = {
+      estatus: dispositivo.estatus,
+      modelo: dispositivo.modelo,
+      ultimos4Imei: String(dispositivo.ultimos4Imei ?? '').slice(-4),
+    };
+  }
+  if (cuotas != null) {
+    if (![cuotas.actual, cuotas.total, cuotas.pagoQuincenal, cuotas.saldo].every(isNumber)) return null;
+    state.cuotas = { actual: cuotas.actual, total: cuotas.total, pagoQuincenal: cuotas.pagoQuincenal, saldo: cuotas.saldo };
+  }
+  if (mora != null) {
+    if (!isNumber(mora.dias) || !isNumber(mora.monto) || !oneOf(mora.nivel, MORA_LEVELS)) return null;
+    state.mora = { dias: mora.dias, monto: mora.monto, nivel: mora.nivel };
+  }
+  return state;
+}
+
+const readJson = async (response: Response) => {
+  const body = await response.json().catch(() => null);
+  return body?.data ?? body;
+};
+
+export const getPhoneOffer = async (associateNumber: string): Promise<PhoneOffer | null> => {
+  try {
+    const response = await apiFetch(`telefono/oferta/${associateNumber}`, { cache: 'no-store' });
+    if (!response.ok) {
+      console.error(`API Error: Failed to get phone offer for ${associateNumber}`, response.status);
+      return null;
+    }
+    const offer = parsePhoneOffer(await readJson(response));
+    if (!offer) console.error(`API Error: Unexpected phone offer shape for ${associateNumber}`);
+    return offer;
+  } catch (error) {
+    console.error(`Network error when getting phone offer for ${associateNumber}:`, error);
+    return null;
+  }
+};
+
+/** Estado del teléfono. null = no se pudo saber (las acciones de emisión lo tratan como bloqueo). */
+export const getPhoneState = async (associateNumber: string): Promise<PhoneState | null> => {
+  try {
+    const response = await apiFetch(`telefono/estado/${associateNumber}`, { cache: 'no-store' });
+    if (!response.ok) {
+      console.error(`API Error: Failed to get phone state for ${associateNumber}`, response.status);
+      return null;
+    }
+    const state = parsePhoneState(await readJson(response));
+    if (!state) console.error(`API Error: Unexpected phone state shape for ${associateNumber}`);
+    return state;
+  } catch (error) {
+    console.error(`Network error when getting phone state for ${associateNumber}:`, error);
+    return null;
+  }
+};
+
+type ApiResult<T> = ({ ok: true } & T) | { ok: false; message: string };
+
+const postJson = async (path: string, payload: unknown, fallbackMessage: string): Promise<ApiResult<{ body: any }>> => {
+  try {
+    const response = await apiFetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      cache: 'no-store',
+    });
+    const body = await readJson(response);
+    if (!response.ok) {
+      console.error(`API Error: POST ${path}`, response.status, body?.message);
+      return { ok: false, message: isText(body?.message) ? body.message : fallbackMessage };
+    }
+    return { ok: true, body };
+  } catch (error) {
+    console.error(`Network error on POST ${path}:`, error);
+    return { ok: false, message: 'Servicio no disponible. Intenta más tarde.' };
+  }
+};
+
+export const createPhoneRequest = async (payload: {
+  associateNumber: string;
+  quincenas: number;
+  aceptoTerminos: true;
+}): Promise<ApiResult<{ folio: string; estatus: PhoneRequestStatus }>> => {
+  const result = await postJson('telefono/solicitudes', payload, 'No se pudo registrar la solicitud.');
+  if (!result.ok) return result;
+  const { folio, estatus } = result.body ?? {};
+  if (!isText(folio) || !oneOf(estatus, REQUEST_STATUSES)) {
+    return { ok: false, message: 'El servidor no devolvió el folio de la solicitud.' };
+  }
+  return { ok: true, folio, estatus };
+};
+
+export const requestDeviceChallenge = async (payload: {
+  associateNumber: string;
+  operacion: DeviceOperation;
+  folio?: string;
+  monto?: number;
+}): Promise<ApiResult<{ challenge: DeviceChallenge }>> => {
+  const result = await postJson('dispositivo/desafio', payload, 'No se pudo generar el desafío del equipo.');
+  if (!result.ok) return result;
+  const { challengeId, challenge, expiraEn } = result.body ?? {};
+  if (!isText(challengeId) || !isText(challenge)) {
+    return { ok: false, message: 'Respuesta inválida del servicio de dispositivo.' };
+  }
+  return { ok: true, challenge: { challengeId, challenge, expiraEn: String(expiraEn ?? '') } };
+};
+
+/**
+ * Verifica la firma del equipo. Además del body del contrato, manda la operación esperada
+ * para que la API confirme que el desafío se emitió para esta asociada, operación, folio y monto.
+ */
+export const verifyDeviceSignature = async (payload: {
+  challengeId: string;
+  firma: string;
+  deviceId: string;
+  associateNumber: string;
+  operacion: DeviceOperation;
+  folio?: string;
+  monto?: number;
+}): Promise<{ valido: boolean; motivo?: string }> => {
+  const result = await postJson('dispositivo/verificar', payload, 'No se pudo verificar el equipo.');
+  if (!result.ok) return { valido: false, motivo: result.message };
+  return result.body?.valido === true
+    ? { valido: true }
+    : { valido: false, motivo: isText(result.body?.motivo) ? result.body.motivo : undefined };
+};
+
+export const reportDevice = async (payload: {
+  associateNumber: string;
+  motivo: DeviceReportReason;
+}): Promise<ApiResult<{}>> => {
+  const result = await postJson('dispositivo/reporte', payload, 'No se pudo reportar el equipo.');
+  return result.ok ? { ok: true } : result;
+};

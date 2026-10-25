@@ -48,6 +48,79 @@ export type PersonalLoanOption =
   | { eligible: true; holderName: string }
   | { eligible: false; reason: PersonalLoanBlockReason; folioActivo: string | null };
 
+// ==================================================================
+// --- Teléfono financiado ---
+// ==================================================================
+
+export type PhonePlan = { quincenas: number; pagoQuincenal: number; totalPagar: number };
+
+// Respuesta de GET telefono/oferta/{associateNumber}. Precio, enganche y planes siempre vienen de la API.
+export type PhoneOffer = {
+  elegible: boolean;
+  motivo?: string;
+  modelo: { nombre: string; almacenamiento: string; imagenUrl: string };
+  precio: number;
+  engancheMonto: number;
+  planes: PhonePlan[];
+};
+
+export type PhoneRequestStatus =
+  | 'SOLICITADO'
+  | 'ENGANCHE_CONFIRMADO'
+  | 'EN_PREPARACION'
+  | 'LISTO_PARA_RECOGER'
+  | 'ACTIVO'
+  | 'CANCELADO';
+
+export type DeviceStatus = 'ACTIVO' | 'BLOQUEADO' | 'REPORTADO' | 'REVOCADO';
+
+export type PhoneMoraLevel = 'AVISO' | 'GRACIA' | 'BLOQUEO';
+
+// Respuesta de GET telefono/estado/{associateNumber}
+export type PhoneState = {
+  solicitud?: { folio: string; estatus: PhoneRequestStatus; fecha: string };
+  dispositivo?: { estatus: DeviceStatus; modelo: string; ultimos4Imei: string };
+  emisionRestringida: boolean;
+  cuotas?: { actual: number; total: number; pagoQuincenal: number; saldo: number };
+  mora?: { dias: number; monto: number; nivel: PhoneMoraLevel };
+};
+
+// dashboardData.telefono
+export type PhoneCollection = { pagoQuincenal: number; cuotaActual: number; totalCuotas: number; saldo: number };
+
+export type DeviceOperation = 'CREAR_VALE' | 'FIRMAR_VALE' | 'PRESTAMO_PERSONAL' | 'CANCELAR_VALE';
+
+export type DeviceChallenge = { challengeId: string; challenge: string; expiraEn: string };
+
+export type DeviceReportReason = 'ROBO' | 'PERDIDA' | 'DANO' | 'OTRO';
+
+/**
+ * Cómo se emiten vales para la asociada:
+ * - LIBRE: sin restricción.
+ * - EQUIPO: solo desde la miniapp, con firma del dispositivo.
+ * - BLOQUEADA: equipo reportado o revocado, o estado no disponible.
+ */
+export type IssuanceMode =
+  | { mode: 'LIBRE' }
+  | { mode: 'EQUIPO' }
+  | { mode: 'BLOQUEADA'; message: string };
+
+// Aviso del dashboard y de los botones de Vale Nuevo cuando la emisión está BLOQUEADA.
+export type IssuancePause = { title: string; message: string };
+
+export type PhoneOfferBlockReason = 'NO_ELEGIBLE' | 'SOLICITUD_ABIERTA' | 'EQUIPO' | 'NO_DISPONIBLE';
+
+// Lo que llega al cliente para la tarjeta y la pantalla de oferta.
+export type PhoneOfferOption =
+  | { available: true; offer: Omit<PhoneOffer, 'elegible' | 'motivo'> }
+  | {
+      available: false;
+      reason: PhoneOfferBlockReason;
+      message: string;
+      folio?: string | null;
+      offer?: Omit<PhoneOffer, 'elegible' | 'motivo'>;
+    };
+
 export type NipResetOtp = {
   otp: string;
   //expiresAt: string; // ISO date string

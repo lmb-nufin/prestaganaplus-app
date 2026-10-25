@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import Header from '@/components/header';
+import BottomNavBar from '@/components/bottom-nav-bar';
 
-const ValesDashboardSkeleton = () => {
+export const ValesDashboardSkeleton = () => {
   return (
     <div className="flex flex-col">
       <header className="shadow-sm">
@@ -12,7 +13,7 @@ const ValesDashboardSkeleton = () => {
         </div>
       </header>
 
-      <main className="flex-grow container mx-auto p-2 md:p-3 pb-24 md:pb-8">
+      <main className="flex-grow container mx-auto p-2 md:p-3 md:pb-8">
         <Card className="mb-3 shadow-sm">
           <CardHeader className="p-3">
             <Skeleton className="h-5 w-1/3" />
@@ -91,9 +92,10 @@ export default function Loading() {
   return (
     <>
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
         <ValesDashboardSkeleton />
       </main>
+      <BottomNavBar />
     </>
   );
 }

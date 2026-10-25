@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { MessageCircle, Phone, Info } from 'lucide-react';
+import { MessageCircle, Phone, Info, CheckCircle2, Loader2 } from 'lucide-react';
+import { DialogClose } from '@/components/ui/dialog';
 import { getMaskedPhoneForReset, requestNipResetOtp, verifyOtpAndResetNip } from '@/app/actions';
 
 type Step = 'enter-associate-id' | 'confirm-phone' | 'enter-otp' | 'reset-success' | 'support';
@@ -82,6 +83,8 @@ export function ForgotNipForm() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
+  // Evita mandar dos veces la verificación o el SMS al tocar el botón repetido.
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -113,6 +116,7 @@ export function ForgotNipForm() {
     const paddedDay = birthDay.padStart(2, '0');
     const birthDateString = `${birthYear}-${paddedMonth}-${paddedDay}`;
 
+    setIsSubmitting(true);
     try {
       const phone = await getMaskedPhoneForReset(associateId, birthDateString);
       if (phone) {
@@ -123,17 +127,27 @@ export function ForgotNipForm() {
       }
     } catch (err) {
       setError('Ocurrió un error. Por favor, intenta de nuevo.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
  const handlePhoneConfirm = async () => {
+    if (isSubmitting) return;
     setError('');
+    setIsSubmitting(true);
     try {
-      await requestNipResetOtp(associateId);
+      const result = await requestNipResetOtp(associateId);
+      if (!result.success) {
+        setError(result.message || 'No se pudo enviar el código. Intenta de nuevo.');
+        return;
+      }
       setResendCooldown(120); // Inicia cooldown de 2 minutos
       setStep('enter-otp');
     } catch (err) {
-      setError('No se pudo enviar el código OTP. Intenta de nuevo.');
+      setError('No se pudo enviar el código. Intenta de nuevo.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -167,7 +181,7 @@ export function ForgotNipForm() {
     try {
       const result = await verifyOtpAndResetNip(associateId, finalOtp);
       if (result.success) {
-        setSuccess('¡Tu NIP ha sido restablecido!');
+        setSuccess('Te enviaremos tu nuevo NIP por SMS al número que confirmaste.');
         setStep('reset-success');
       } else {
         setError(result.message);
@@ -183,7 +197,11 @@ export function ForgotNipForm() {
     if (resendCooldown === 0) {
       setError('');
       try {
-        await requestNipResetOtp(associateId);
+        const result = await requestNipResetOtp(associateId);
+        if (!result.success) {
+          setError(result.message || 'No se pudo reenviar el código. Intenta de nuevo.');
+          return;
+        }
         setResendCooldown(120);
       } catch (err) {
         setError('No se pudo reenviar el código OTP. Intenta de nuevo.');
@@ -198,7 +216,7 @@ export function ForgotNipForm() {
         <AlertTitle className="text-blue-800 font-headline">Contacta a Soporte</AlertTitle>
       </Alert>
       
-      <p className="text-sm text-gray-600 text-center pt-2">
+      <p className="text-sm text-muted-foreground text-center pt-2">
         Para proteger tu cuenta, es necesario que contactes a nuestro equipo para actualizar tu número de teléfono o restablecer tu NIP.
       </p>
 
@@ -227,11 +245,14 @@ export function ForgotNipForm() {
   if (step === 'reset-success') {
     return (
       <div className="p-6 space-y-4 text-center">
-        <Alert variant="success">
-          <AlertTitle className="font-headline">¡Éxito!</AlertTitle>
-          <AlertDescription>{success}</AlertDescription>
+        <Alert className="border-green-200 bg-green-50 text-left text-green-800">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertTitle className="font-headline">Tu NIP se restableció</AlertTitle>
+          <AlertDescription className="text-green-700">{success}</AlertDescription>
         </Alert>
-        <Button onClick={() => window.location.reload()}>Volver al Inicio</Button>
+        <DialogClose asChild>
+          <Button className="w-full">Listo</Button>
+        </DialogClose>
       </div>
     );
   }
@@ -246,7 +267,7 @@ export function ForgotNipForm() {
 
       {step === 'enter-associate-id' && (
         <form onSubmit={handleAssociateIdSubmit} className="space-y-4">
-          <p className="text-sm text-gray-600 text-center">Ingresa tus datos para verificar tu identidad.</p>
+          <p className="text-sm text-muted-foreground text-center">Ingresa tus datos para verificar tu identidad.</p>
           <div>
             <Label htmlFor="associateId">Número de Asociada</Label>
             <Input
@@ -261,7 +282,7 @@ export function ForgotNipForm() {
                 <Label>Fecha de Nacimiento</Label>
                 <div className="flex space-x-2">
                     <div className="w-1/3">
-                        <Label htmlFor="birthDay" className="text-xs font-normal text-gray-500">Día</Label>
+                        <Label htmlFor="birthDay" className="text-xs font-normal text-muted-foreground">Día</Label>
                         <Input
                             id="birthDay"
                             value={birthDay}
@@ -273,7 +294,7 @@ export function ForgotNipForm() {
                         />
                     </div>
                     <div className="w-1/3">
-                        <Label htmlFor="birthMonth" className="text-xs font-normal text-gray-500">Mes</Label>
+                        <Label htmlFor="birthMonth" className="text-xs font-normal text-muted-foreground">Mes</Label>
                         <Input
                             id="birthMonth"
                             value={birthMonth}
@@ -285,7 +306,7 @@ export function ForgotNipForm() {
                         />
                     </div>
                     <div className="w-1/3">
-                        <Label htmlFor="birthYear" className="text-xs font-normal text-gray-500">Año</Label>
+                        <Label htmlFor="birthYear" className="text-xs font-normal text-muted-foreground">Año</Label>
                         <Input
                             id="birthYear"
                             value={birthYear}
@@ -298,8 +319,11 @@ export function ForgotNipForm() {
                     </div>
                 </div>
             </div>
-          <Button type="submit" className="w-full">Continuar</Button>
-          <Button variant='outline' className='w-full' onClick={() => setStep('support')}>
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="animate-spin" />}
+            Continuar
+          </Button>
+          <Button type="button" variant='outline' className='w-full' onClick={() => setStep('support')}>
               Contactar Soporte
           </Button>
         </form>
@@ -308,13 +332,16 @@ export function ForgotNipForm() {
       {step === 'confirm-phone' && (
          <div className="space-y-4 text-center border-t pt-6 mt-6">
             <h3 className="font-semibold text-lg">Confirma tu Teléfono</h3>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
                 Enviaremos un código de verificación al número terminado en:
             </p>
             <p className="font-bold text-xl tracking-widest">{maskedPhone}</p>
-            <p className="text-xs text-gray-500">Si no reconoces este número, contacta a soporte.</p>
+            <p className="text-xs text-muted-foreground">Si no reconoces este número, contacta a soporte.</p>
             <div className="flex flex-col space-y-2 pt-2">
-                <Button onClick={handlePhoneConfirm} className="w-full">Sí, es mi número. Enviar código.</Button>
+                <Button onClick={handlePhoneConfirm} className="w-full" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="animate-spin" />}
+                  Sí, es mi número. Enviar código.
+                </Button>
                 <Button variant="outline" className="w-full" onClick={() => setStep('support')}>Mi número es incorrecto</Button>
                 <Button variant="link" size="sm" onClick={() => setStep('enter-associate-id')}>
                   Regresar
@@ -327,7 +354,7 @@ export function ForgotNipForm() {
         <form onSubmit={handleOtpSubmit} className="space-y-6 border-t pt-6 mt-6">
           <div className='text-center'>
              <h3 className="font-semibold text-lg">Código de Verificación</h3>
-             <p className="text-sm text-gray-600">Ingresa el código de 6 dígitos que enviamos a tu teléfono.</p>
+             <p className="text-sm text-muted-foreground">Ingresa el código de 6 dígitos que enviamos a tu teléfono.</p>
           </div>
           <OtpInput value={otp} onChange={setOtp} onComplete={triggerOtpVerification} />
           
@@ -336,14 +363,14 @@ export function ForgotNipForm() {
 </Button>
           <div className="text-center text-sm">
             {resendCooldown > 0 ? (
-              <p className="text-gray-500">Puedes solicitar otro código en {resendCooldown} segundos.</p>
+              <p className="text-muted-foreground">Puedes solicitar otro código en {resendCooldown} segundos.</p>
             ) : (
               <Button variant="link" type="button" onClick={handleResendOtp}>
                 Reenviar código
               </Button>
             )}
           </div>
-          <Button variant="link" className="w-full -mt-2" onClick={() => setStep('support')}>
+          <Button type="button" variant="link" className="w-full -mt-2" onClick={() => setStep('support')}>
             Contactar a Soporte
           </Button>
         </form>

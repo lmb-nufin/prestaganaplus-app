@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import {
   DialogHeader,
@@ -8,9 +9,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Copy, AlertCircle, Star } from 'lucide-react';
+import { Copy, AlertCircle, Check, Landmark, Building2, Banknote } from 'lucide-react';
 import { Button } from './ui/button';
-import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from './ui/scroll-area';
@@ -22,6 +22,8 @@ interface PaymentOptionsModalProps {
   payCashReference: string;
 }
 
+// Las referencias numéricas (CLABE, convenio, referencia) se pueden copiar y van en dígitos
+// tabulares y espaciados para leerlas fácil; el resto es texto normal.
 const InfoRow = ({
   label,
   value,
@@ -31,31 +33,51 @@ const InfoRow = ({
   value: string;
   canCopy?: boolean;
 }) => {
-  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(value);
-    toast({
-      title: 'Copiado',
-      description: `${label} copiado al portapapeles.`,
-      className: 'bg-accent text-accent-foreground',
-    });
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
   };
 
   return (
-    <div className="flex justify-between items-center py-2 border-b border-dashed">
-      <div>
+    <div className="flex items-center justify-between gap-3 py-2.5">
+      <div className="min-w-0">
         <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="font-mono text-sm font-semibold">{value}</p>
+        <p className={cn('text-sm font-semibold break-words', canCopy && 'tabular-nums tracking-wider text-base')}>
+          {value}
+        </p>
       </div>
       {canCopy && (
-        <Button size="icon" variant="ghost" onClick={handleCopy}>
-          <Copy className="h-4 w-4" />
+        <Button
+          type="button"
+          size="sm"
+          variant={copied ? 'secondary' : 'outline'}
+          onClick={handleCopy}
+          className="h-8 flex-shrink-0 gap-1 px-2 text-xs"
+          aria-label={`Copiar ${label}`}
+        >
+          {copied ? <Check className="h-3.5 w-3.5 text-accent" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? 'Copiado' : 'Copiar'}
         </Button>
       )}
     </div>
   );
 };
+
+const MethodTab = ({ value, icon: Icon, title, subtitle }: { value: string; icon: React.ElementType; title: string; subtitle: string }) => (
+  <TabsTrigger
+    value={value}
+    className="flex h-auto flex-col items-center gap-0.5 whitespace-normal rounded-md px-1 py-2 text-center leading-tight data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow"
+  >
+    <Icon className="h-4 w-4" />
+    <span className="text-xs font-semibold">{title}</span>
+    <span className="text-[10px] font-normal text-muted-foreground">{subtitle}</span>
+  </TabsTrigger>
+);
 
 export function PaymentOptionsModal({
   stpClabe,
@@ -88,36 +110,36 @@ export function PaymentOptionsModal({
         </Alert>
 
         <Tabs defaultValue="stp" className="w-full">
-           <TabsList className="grid w-full grid-cols-3 bg-muted/50 h-auto p-1">
-             <TabsTrigger value="stp" className="text-xs px-1 gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <Star className="h-3 w-3" />
-                Transferencia STP
-            </TabsTrigger>
-            <TabsTrigger value="cie" className="text-xs px-1 data-[state=active]:bg-blue-800 data-[state=active]:text-white">BBVA CIE</TabsTrigger>
-            <TabsTrigger value="paycash" className="text-xs px-1 data-[state=active]:bg-amber-500 data-[state=active]:text-black">Efectivo (PayCash)</TabsTrigger>
+          <TabsList className="grid h-auto w-full grid-cols-3 gap-1 bg-muted p-1">
+            <MethodTab value="stp" icon={Landmark} title="Transferencia" subtitle="SPEI · Recomendado" />
+            <MethodTab value="cie" icon={Building2} title="BBVA" subtitle="Convenio CIE" />
+            <MethodTab value="paycash" icon={Banknote} title="Efectivo" subtitle="PayCash" />
           </TabsList>
 
-           <TabsContent value="stp" className="border border-primary/20 bg-primary/10 rounded-b-md p-4 space-y-1.5">
-              <p className="text-xs text-center text-primary/80 mb-3 font-medium">
-                  Realiza una transferencia SPEI desde cualquier app bancaria con los
-                  siguientes datos.
+          <TabsContent value="stp" className="mt-3 rounded-lg border p-3">
+              <p className="mb-1 text-xs text-muted-foreground">
+                  Transfiere desde cualquier app bancaria con estos datos.
               </p>
-              <InfoRow label="Banco" value="STP (Sistema de Transferencias y Pagos)" />
-              <InfoRow label="CLABE" value={stpClabe} canCopy />
+              <div className="divide-y">
+                <InfoRow label="Banco" value="STP (Sistema de Transferencias y Pagos)" />
+                <InfoRow label="CLABE" value={stpClabe} canCopy />
+              </div>
           </TabsContent>
-          
-          <TabsContent value="cie" className="border border-blue-800/20 bg-blue-900/10 rounded-b-md p-4 space-y-1.5">
-              <p className="text-xs text-center text-blue-900/80 mb-3">
-                Paga en ventanilla o app BBVA con ‘Pago de Servicios – Convenio CIE’.
+
+          <TabsContent value="cie" className="mt-3 rounded-lg border p-3">
+              <p className="mb-1 text-xs text-muted-foreground">
+                Paga en ventanilla o en la app BBVA con “Pago de Servicios – Convenio CIE”.
               </p>
-              <InfoRow label="Banco" value="BBVA" />
-              <InfoRow label="Beneficiario" value="DEEHOCK SAPI DE CV" />
-              <InfoRow label="Convenio CIE" value={cieConvenio} canCopy/>
-              <InfoRow label="Referencia" value={cieReference} canCopy/>
+              <div className="divide-y">
+                <InfoRow label="Banco" value="BBVA" />
+                <InfoRow label="Beneficiario" value="DEEHOCK SAPI DE CV" />
+                <InfoRow label="Convenio CIE" value={cieConvenio} canCopy />
+                <InfoRow label="Referencia" value={cieReference} canCopy />
+              </div>
           </TabsContent>
-          
-          <TabsContent value="paycash" className="border border-amber-500/20 bg-amber-500/10 rounded-b-md p-4 space-y-3">
-              <p className="text-xs text-center text-amber-900/80">
+
+          <TabsContent value="paycash" className="mt-3 rounded-lg border p-3 space-y-3">
+              <p className="text-xs text-muted-foreground">
                   Paga con el código de barras PayCash en los siguientes comercios.
               </p>
               <div className="flex justify-center bg-white p-2 rounded-lg">

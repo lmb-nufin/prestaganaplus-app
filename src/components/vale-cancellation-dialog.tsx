@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState, useEffect } from 'react';
+import { useActionState, useCallback, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Loader2, ShieldAlert, Trash2 } from 'lucide-react';
@@ -19,10 +19,14 @@ import { Label } from './ui/label';
 import { cancelVale } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { useDeviceSignedSubmit } from '@/hooks/use-device-bridge';
+import { DeviceSignatureError, DeviceSignatureFields } from './device-gate';
 
 interface ValeCancellationDialogProps {
   folio: string;
   onOpenChange?: (open: boolean) => void;
+  // Con emisión restringida, la cancelación lleva la firma del equipo (miniapp).
+  deviceSignatureRequired?: boolean;
   }
   
   const initialState = {
@@ -41,8 +45,12 @@ interface ValeCancellationDialogProps {
   );
   }
   
-  export function ValeCancellationDialog({ folio, onOpenChange }: ValeCancellationDialogProps) {
+  export function ValeCancellationDialog({ folio, onOpenChange, deviceSignatureRequired = false }: ValeCancellationDialogProps) {
   const [state, formAction] = useActionState(cancelVale, initialState);
+  const deviceSignature = useDeviceSignedSubmit(
+    deviceSignatureRequired,
+    useCallback(() => ({ operacion: 'CANCELAR_VALE' as const, folio }), [folio])
+  );
   const { toast } = useToast();
   const router = useRouter(); 
   
@@ -87,7 +95,8 @@ interface ValeCancellationDialogProps {
   
   return (
   <DialogContent className="sm:max-w-md p-0">
-  <form id={formId} action={formAction}>
+  <form id={formId} action={formAction} onSubmit={deviceSignature.onSubmit}>
+  <DeviceSignatureFields signature={deviceSignature.signature} />
    <DialogHeader className="p-4 pb-2">
    <DialogTitle className="font-headline text-lg">Cancelar Vale</DialogTitle>
    <DialogDescription>
@@ -116,6 +125,13 @@ interface ValeCancellationDialogProps {
   minLength={4}
   />
    </div>
+   <DeviceSignatureError message={deviceSignature.error} />
+   {state.message && !state.success && (
+     <Alert variant="destructive" className="p-3">
+       <AlertTitle className="text-sm font-headline">No se pudo cancelar</AlertTitle>
+       <AlertDescription className="text-xs">{state.message}</AlertDescription>
+     </Alert>
+   )}
    </div>
    <DialogFooter className="p-4 bg-muted/50 rounded-b-lg">
   <DialogClose asChild>

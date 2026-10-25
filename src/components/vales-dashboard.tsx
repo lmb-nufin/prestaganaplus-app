@@ -12,7 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Vale } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { getVales } from '@/app/actions';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { PersonalBadge } from './personal-badge';
 
 
@@ -44,8 +45,11 @@ const ValeStatusBadge = ({ status }: { status: Vale['status'] }) => {
 const ValesList = ({ vales: valesToList, noDataMessage }: { vales: Vale[], noDataMessage: string }) => (
 <>
         {valesToList.length === 0 ? (
-        <div className="text-center py-10 px-4">
+        <div className="text-center py-10 px-4 space-y-3">
             <p className="text-sm text-muted-foreground">{noDataMessage}</p>
+            <Button asChild variant="outline" size="sm">
+                <Link href="/vales/nuevo"><PlusCircle />Crear vale nuevo</Link>
+            </Button>
         </div>
         ) : (
             <>
@@ -123,7 +127,15 @@ const ValesList = ({ vales: valesToList, noDataMessage }: { vales: Vale[], noDat
 );
 
 
-export default async function ValesDashboard() {
+const NOTICES: Record<string, { title: string; description: string }> = {
+  'folio-no-encontrado': {
+    title: 'No encontramos ese vale',
+    description: 'El folio no existe o no pertenece a tu cuenta. Revisa tu lista de vales.',
+  },
+};
+
+export default async function ValesDashboard({ notice }: { notice?: string }) {
+  const noticeContent = notice ? NOTICES[notice] : undefined;
   const allVales = await getVales();
   
   // An active vale is one that is PENDING or SIGNED
@@ -148,7 +160,14 @@ export default async function ValesDashboard() {
         </div>
       </header>
 
-      <main className="flex-grow container mx-auto p-2 md:p-3 pb-24 md:pb-8">
+      <main className="flex-grow container mx-auto p-2 md:p-3 md:pb-8">
+        {noticeContent && (
+          <Alert variant="destructive" className="mb-3" data-testid="vales-notice">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>{noticeContent.title}</AlertTitle>
+            <AlertDescription>{noticeContent.description}</AlertDescription>
+          </Alert>
+        )}
         <Card className="mb-3 shadow-sm">
           <CardHeader className="p-3">
             <CardTitle className="font-headline text-sm">¿Cómo funciona un vale digital?</CardTitle>

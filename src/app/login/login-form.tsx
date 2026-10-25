@@ -62,8 +62,8 @@ function LoginFormContent({ onLoginClick }: { onLoginClick: () => void }) {
             aria-disabled={pending} 
             disabled={pending}
             onClick={(e) => {
-              // We call the animation trigger, but don't prevent form submission.
-              onLoginClick();
+              // Solo anima si el formulario se va a enviar (con campos vacíos el navegador lo detiene).
+              if (e.currentTarget.form?.checkValidity()) onLoginClick();
             }}
         >
             {pending ? <Loader2 className="animate-spin" /> : <LogIn />}
@@ -75,13 +75,25 @@ function LoginFormContent({ onLoginClick }: { onLoginClick: () => void }) {
 }
 
 
-export function LoginForm({ onLoginClick }: { onLoginClick: () => void }) {
+export function LoginForm({ onLoginClick, onAuthError }: { onLoginClick: () => void; onAuthError?: () => void }) {
   const [errorMessage, formAction] = useActionState(authenticate, undefined);
+  // A dónde regresar después del login; el servidor solo acepta rutas internas.
+  const [callbackUrl, setCallbackUrl] = useState('');
+
+  useEffect(() => {
+    setCallbackUrl(new URLSearchParams(window.location.search).get('callbackUrl') ?? '');
+  }, []);
+
+  // Si la autenticación falla, regresa el formulario de inmediato para mostrar el error.
+  useEffect(() => {
+    if (errorMessage) onAuthError?.();
+  }, [errorMessage, onAuthError]);
 
   return (
     <div className="space-y-2">
         <Card>
             <form action={formAction} autoComplete="off">
+                 <input type="hidden" name="callbackUrl" value={callbackUrl} />
                  <LoginFormContent onLoginClick={onLoginClick} />
             </form>
         </Card>

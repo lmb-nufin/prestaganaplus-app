@@ -1,10 +1,11 @@
 
 import { auth } from '@/lib/auth';
-import { findUserByAssociateNumber } from '@/lib/data';
+import { findUserByAssociateNumber, getPhoneState } from '@/lib/data';
+import { ReportDeviceButton, ReportedDeviceSteps } from '@/components/report-device';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { KeyRound, Mail, Phone, User } from 'lucide-react';
+import { KeyRound, Mail, Phone, Smartphone, User } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { ForgotNipForm } from '@/app/login/forgot-nip-form';
 import { Suspense } from 'react';
@@ -29,7 +30,12 @@ async function ProfileContent() {
         return <p>No se pudo cargar la información de la asociada.</p>;
     }
 
-    const user = await findUserByAssociateNumber(session.user.associateNumber);
+    const [user, phoneState] = await Promise.all([
+        findUserByAssociateNumber(session.user.associateNumber),
+        getPhoneState(session.user.associateNumber),
+    ]);
+    const device = phoneState?.dispositivo;
+    const canReport = device?.estatus === 'ACTIVO' || device?.estatus === 'BLOQUEADO';
     const getInitials = (name: string) => {
         const names = name.split(' ');
         if (names.length > 1) {
@@ -71,13 +77,23 @@ async function ProfileContent() {
                                 <DialogHeader className="p-4 pb-0">
                                     <DialogTitle className="font-headline">Restablecer NIP</DialogTitle>
                                     <DialogDescription>
-                                        Ponte en contacto con soporte para recibir ayuda.
+                                        Verifica tu identidad y te enviaremos un NIP nuevo por SMS.
                                     </DialogDescription>
                                 </DialogHeader>
                                 <ForgotNipForm />
                             </DialogContent>
                         </Dialog>
                     </div>
+                    {device && (
+                        <div className="mt-4 space-y-2 border-t pt-4">
+                            <InfoRow icon={Smartphone} label="Mi equipo PrestaGana" value={`${device.modelo} · IMEI ${device.ultimos4Imei}`} />
+                            {canReport ? (
+                                <ReportDeviceButton deviceLabel={`${device.modelo}, IMEI terminación ${device.ultimos4Imei}`} />
+                            ) : (
+                                <ReportedDeviceSteps />
+                            )}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

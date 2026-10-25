@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState, useState, useEffect, useRef } from 'react';
+import { useActionState, useState, useEffect, useRef, useCallback } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Loader2, Send, KeyRound, CheckCircle, AlertCircle, Info, RefreshCw } from 'lucide-react';
 
@@ -13,11 +13,20 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Label } from './ui/label';
+import { useDeviceSignedSubmit } from '@/hooks/use-device-bridge';
+import { DeviceSignatureError, DeviceSignatureFields } from './device-gate';
 
 
-export function ValeSigningForm({ vale }: { vale: Vale }) {
+export function ValeSigningForm({ vale, deviceSignatureRequired = false }: { vale: Vale; deviceSignatureRequired?: boolean }) {
+  // D2: con equipo, la firma del dispositivo se suma al OTP + NIP.
+  const deviceSignature = useDeviceSignedSubmit(
+    deviceSignatureRequired,
+    useCallback(() => ({ operacion: 'FIRMAR_VALE' as const, folio: vale.folio, monto: vale.loanAmount }), [vale.folio, vale.loanAmount])
+  );
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
+  // El error de envío también se muestra en la pantalla, no solo en el aviso emergente.
+  const [sendError, setSendError] = useState('');
   const [signState, formAction] = useActionState(signValeWithOtp, { success: false, message: '' });
   const { toast } = useToast();
   const router = useRouter();
@@ -64,6 +73,7 @@ export function ValeSigningForm({ vale }: { vale: Vale }) {
 
   const handleSendOtp = async () => {
     setIsSendingOtp(true);
+    setSendError('');
     try {
       const result = await sendValeOtp();
       if (result.success) {
@@ -75,6 +85,7 @@ export function ValeSigningForm({ vale }: { vale: Vale }) {
         startCountdown();
         setTimeout(() => inputRefs.current[0]?.focus(), 100);
       } else {
+         setSendError(result.message || 'No se pudo enviar el código.');
          toast({
             title: 'Error',
             description: result.message || 'No se pudo enviar el código.',
@@ -82,6 +93,7 @@ export function ValeSigningForm({ vale }: { vale: Vale }) {
         });
       }
     } catch (error) {
+       setSendError('No se pudo enviar el código. Intenta de nuevo.');
        toast({
             title: 'Error Inesperado',
             description: 'No se pudo enviar el código. Intenta de nuevo.',
@@ -108,6 +120,16 @@ export function ValeSigningForm({ vale }: { vale: Vale }) {
     }
   };
 
+  // Pegar el código completo (o que el teléfono lo sugiera desde el SMS) llena las 6 casillas.
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const digits = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!digits) return;
+    e.preventDefault();
+    const next = new Array(6).fill('').map((_, i) => digits[i] ?? '');
+    setOtp(next);
+    inputRefs.current[Math.min(digits.length, 5)]?.focus();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
     // On backspace, if the input is empty, move to the previous input
     if (e.key === "Backspace" && !otp[index] && index > 0 && inputRefs.current[index - 1]) {
@@ -130,8 +152,17 @@ export function ValeSigningForm({ vale }: { vale: Vale }) {
                 {isSendingOtp ? <Loader2 className="animate-spin" /> : <Send />}
                 Enviar Código de Firma
             </Button>
-        ) : (
-            <form action={formAction} className="space-y-4">
+        ) : null}
+        {!isOtpSent && sendError && (
+            <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>No se pudo enviar el código</AlertTitle>
+                <AlertDescription>{sendError}</AlertDescription>
+            </Alert>
+        )}
+        {isOtpSent && (
+            <form action={formAction} onSubmit={deviceSignature.onSubmit} className="space-y-4">
+                <DeviceSignatureFields signature={deviceSignature.signature} />
                  <Alert variant="default" className="bg-accent/10 border-accent/20 text-accent/90">
                     <CheckCircle className="h-4 w-4 text-accent"/>
                     <AlertTitle className="font-headline text-accent">¡Código Enviado!</AlertTitle>
@@ -145,12 +176,13 @@ export function ValeSigningForm({ vale }: { vale: Vale }) {
                 
                 <div className="space-y-1">
                     <Label htmlFor="otp" className="text-xs">Código de Verificación (OTP)</Label>
-                    <div className="flex justify-center gap-2" dir="ltr">
+                    <div className="flex justify-center gap-2" dir="ltr" onPaste={handleOtpPaste}>
                         {otp.map((data, index) => {
                             return (
                                 <Input
                                     key={index}
                                     id={index === 0 ? 'otp' : undefined}
+                                    autoComplete={index === 0 ? 'one-time-code' : 'off'}
                                     type="text"
                                     inputMode="numeric"
                                     pattern="\d{1}"
@@ -193,8 +225,7 @@ export function ValeSigningForm({ vale }: { vale: Vale }) {
                     )}
                  </div>
 
-                <SubmitButton />
-
+                <DeviceSignatureError message={deviceSignature.error} />
                 {signState.message && !signState.success && !signState.errors && (
                     <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
@@ -202,6 +233,8 @@ export function ValeSigningForm({ vale }: { vale: Vale }) {
                         <AlertDescription>{signState.message}</AlertDescription>
                     </Alert>
                 )}
+
+                <SubmitButton />
             </form>
         )}
     </div>

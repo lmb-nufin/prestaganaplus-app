@@ -6,6 +6,8 @@ import { AlertCircle, HandCoins, Loader2 } from 'lucide-react';
 
 import { createPersonalLoanVale } from '@/app/actions';
 import { useAuditData } from '@/hooks/use-audit-data';
+import { useDeviceSignedSubmit } from '@/hooks/use-device-bridge';
+import { DeviceSignatureError, DeviceSignatureFields } from './device-gate';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Button } from './ui/button';
@@ -34,10 +36,18 @@ type PersonalLoanFormProps = {
   installments: number[];
   // Solo para el diálogo; el servidor toma los datos de la API.
   holderName: string;
+  // Con emisión restringida, el envío lleva la firma del equipo (miniapp).
+  deviceSignatureRequired?: boolean;
 };
 
-export function PersonalLoanForm({ amounts, installments, holderName }: PersonalLoanFormProps) {
+const signatureContext = (form: HTMLFormElement) => ({
+  operacion: 'PRESTAMO_PERSONAL' as const,
+  monto: Number(new FormData(form).get('loanAmount')),
+});
+
+export function PersonalLoanForm({ amounts, installments, holderName, deviceSignatureRequired = false }: PersonalLoanFormProps) {
   const [state, formAction] = useActionState(createPersonalLoanVale, initialState);
+  const deviceSignature = useDeviceSignedSubmit(deviceSignatureRequired, signatureContext);
   const auditData = useAuditData();
   const formRef = useRef<HTMLFormElement>(null);
   const [loanAmount, setLoanAmount] = useState('');
@@ -47,7 +57,8 @@ export function PersonalLoanForm({ amounts, installments, holderName }: Personal
   const canSubmit = loanAmount !== '' && installmentCount !== '';
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-4">
+    <form ref={formRef} action={formAction} onSubmit={deviceSignature.onSubmit} className="space-y-4">
+      <DeviceSignatureFields signature={deviceSignature.signature} />
       <input type="hidden" name="deviceId" value={auditData.deviceId} />
       <input type="hidden" name="deviceModel" value={auditData.deviceModel} />
       <input type="hidden" name="latitude" value={auditData.latitude} />
@@ -79,6 +90,7 @@ export function PersonalLoanForm({ amounts, installments, holderName }: Personal
         {state?.errors?.installments && <p className="text-xs text-destructive">{state.errors.installments[0]}</p>}
       </div>
 
+      <DeviceSignatureError message={deviceSignature.error} />
       {state?.message && !state.success && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -88,15 +100,7 @@ export function PersonalLoanForm({ amounts, installments, holderName }: Personal
       )}
 
       <div className="pt-2">
-        <Button
-          type="button"
-          disabled={!canSubmit}
-          onClick={() => setIsConfirmOpen(true)}
-          className="w-full bg-indigo-600 text-white hover:bg-indigo-700"
-        >
-          <HandCoins />
-          Confirmar
-        </Button>
+        <ConfirmButton disabled={!canSubmit} onClick={() => setIsConfirmOpen(true)} />
       </div>
 
       <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
@@ -118,11 +122,26 @@ export function PersonalLoanForm({ amounts, installments, holderName }: Personal
   );
 }
 
-function SubmitAction({ onSubmit }: { onSubmit: () => void }) {
+// El diálogo se cierra al confirmar, así que el estado de envío se muestra en este botón
+// y lo deshabilita para que no se pueda mandar dos veces.
+function ConfirmButton({ disabled, onClick }: { disabled: boolean; onClick: () => void }) {
   const { pending } = useFormStatus();
   return (
-    <AlertDialogAction onClick={onSubmit} disabled={pending} className="bg-indigo-600 hover:bg-indigo-700">
-      {pending ? <Loader2 className="animate-spin mr-2" /> : null}
+    <Button
+      type="button"
+      disabled={disabled || pending}
+      onClick={onClick}
+      className="w-full bg-indigo-600 text-white hover:bg-indigo-700"
+    >
+      {pending ? <Loader2 className="animate-spin" /> : <HandCoins />}
+      {pending ? 'Creando préstamo…' : 'Confirmar'}
+    </Button>
+  );
+}
+
+function SubmitAction({ onSubmit }: { onSubmit: () => void }) {
+  return (
+    <AlertDialogAction onClick={onSubmit} className="bg-indigo-600 hover:bg-indigo-700">
       Confirmar y Crear
     </AlertDialogAction>
   );

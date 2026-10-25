@@ -74,3 +74,82 @@ Este contrato define los datos que debe devolver el endpoint `GET /dashboard/{as
 
 - **`reports`**: Objeto con enlaces a documentos relevantes.
   - `latestCollectionReportUrl`: URL directa para descargar el último reporte o relación de cobro en PDF.
+
+## 2. Teléfono financiado (Samsung Galaxy A17 4G 128GB)
+
+Contrato de la Fase 1 (web). La app nunca tiene precios fijos: precio, enganche, pago quincenal y total a pagar vienen siempre de estos endpoints. Todas las respuestas pueden venir directas o dentro de `{ "data": ... }`. La simulación está en `src/lib/demo-api.ts`.
+
+**Reglas que la API debe validar en el servidor** (la app también las revisa, pero solo como UX):
+
+- Elegibilidad, plan permitido y que no haya otra solicitud abierta ni equipo activo, en `POST telefono/solicitudes`.
+- Restricción de emisión: mientras `emisionRestringida` sea `true` y el equipo esté `ACTIVO` o `BLOQUEADO`, crear, firmar o cancelar vales y préstamos personales requiere un desafío firmado por el equipo.
+- Desafíos de un solo uso, con expiración, y amarrados a asociada, operación, folio y monto.
+
+### `GET telefono/oferta/{associateNumber}`
+
+```json
+{
+  "elegible": true,
+  "motivo": null,
+  "modelo": { "nombre": "Samsung Galaxy A17 4G", "almacenamiento": "128GB", "imagenUrl": "https://.../galaxy-a17.png" },
+  "precio": 4499.00,
+  "engancheMonto": 225.00,
+  "planes": [
+    { "quincenas": 12, "pagoQuincenal": 445.00, "totalPagar": 5340.00 },
+    { "quincenas": 18, "pagoQuincenal": 320.00, "totalPagar": 5760.00 }
+  ]
+}
+```
+
+- `elegible: false` lleva `motivo` en texto para mostrar a la asociada.
+- Si falta `elegible` (booleano), `modelo`, `precio`, `engancheMonto` o algún plan completo, la app trata la oferta como **no disponible** (fail-closed).
+
+### `POST telefono/solicitudes`
+
+Body: `{ "associateNumber": "1000006", "quincenas": 18, "aceptoTerminos": true }`
+
+Respuesta: `{ "folio": "TEL-1000006-AB12CD", "estatus": "SOLICITADO" }`. Si la validación falla, 4xx con `{ "message": "..." }`; la app muestra ese mensaje.
+
+### `GET telefono/estado/{associateNumber}`
+
+```json
+{
+  "solicitud": { "folio": "TEL-1000011-DEMO", "estatus": "ACTIVO", "fecha": "2026-10-01T16:00:00.000Z" },
+  "dispositivo": { "estatus": "ACTIVO", "modelo": "Samsung Galaxy A17 4G 128GB", "ultimos4Imei": "0011" },
+  "emisionRestringida": true,
+  "cuotas": { "actual": 3, "total": 18, "pagoQuincenal": 320.00, "saldo": 4800.00 },
+  "mora": { "dias": 3, "monto": 320.00, "nivel": "AVISO" }
+}
+```
+
+- `solicitud.estatus`: `SOLICITADO | ENGANCHE_CONFIRMADO | EN_PREPARACION | LISTO_PARA_RECOGER | ACTIVO | CANCELADO`.
+- `dispositivo.estatus`: `ACTIVO | BLOQUEADO | REPORTADO | REVOCADO`. Con `REPORTADO` o `REVOCADO` la emisión queda bloqueada ("Acude a sucursal para reactivar").
+- `mora.nivel`: `AVISO | GRACIA | BLOQUEO`. Los bloqueos Knox no los maneja la web.
+- `solicitud`, `dispositivo`, `cuotas` y `mora` son opcionales; `emisionRestringida` es obligatorio. Si la respuesta falla o tiene otra forma, la app **no permite emitir vales** (fail-closed).
+
+### `POST dispositivo/desafio`
+
+Body: `{ "associateNumber": "1000011", "operacion": "CREAR_VALE", "folio": null, "monto": 5000 }`
+
+- `operacion`: `CREAR_VALE | FIRMAR_VALE | PRESTAMO_PERSONAL | CANCELAR_VALE`. `CANCELAR_VALE` es una extensión de esta fase.
+- Respuesta: `{ "challengeId": "uuid", "challenge": "cadena aleatoria", "expiraEn": "ISO 8601" }`.
+
+### `POST dispositivo/verificar`
+
+Body del contrato: `{ "challengeId", "firma", "deviceId" }`. La app agrega `associateNumber`, `operacion`, `folio` y `monto` para que la API confirme que el desafío corresponde a la operación que se está ejecutando.
+
+Respuesta: `{ "valido": true }` o `{ "valido": false, "motivo": "..." }`. El desafío se consume en el primer intento, válido o no.
+
+### `POST dispositivo/reporte`
+
+Body: `{ "associateNumber": "1000011", "motivo": "ROBO" }` con `motivo`: `ROBO | PERDIDA | DANO | OTRO`. Deja el equipo en `REPORTADO` y bloquea la emisión.
+
+### Cambio en `GET dashboardData/{associateNumber}`
+
+Agrega `telefono` cuando hay equipo, para el desglose del Monto a Pagar:
+
+```json
+"telefono": { "pagoQuincenal": 320.00, "cuotaActual": 3, "totalCuotas": 18, "saldo": 4800.00 }
+```
+
+La app asume que `paymentStatus.amountDue` ya incluye la cuota del teléfono y su mora, y muestra Vales = `amountDue − (pagoQuincenal + mora.monto)`. Pendiente de confirmar con el backend.
