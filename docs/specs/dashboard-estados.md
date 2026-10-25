@@ -30,7 +30,8 @@ Asociada demo 1000013.
 - Por default **colapsada**: una fila con el título "Datos de la Asociada", el nombre debajo y un chevron a la derecha.
 - Al tocarla se expande y muestra lo de hoy: No. Asociada, Sucursal, Fecha de Alta y Colocación Promedio.
 - `Collapsible` de shadcn existente. Botón accesible (`aria-expanded`), área táctil ≥44px, animación suave.
-- Mismo estilo de tarjeta. "Nivel", "Relación de Cobro" y el resto no se tocan.
+- Mismo estilo de tarjeta. "Relación de Cobro" y el resto no se tocan.
+- **Cambio de alcance (pedido del dueño):** la tarjeta "Nivel" se quita. El nivel pasa a un badge junto al título de la tarjeta colapsada, solo con "Senior" o "Junior" (se quita el prefijo "Nivel " que manda la API). Si la API no manda nivel, no hay badge.
 
 ## 5. Pruebas (DEMO_MODE=true, Playwright, 390x844)
 - Login → `/` con campana (todas las asociadas demo).

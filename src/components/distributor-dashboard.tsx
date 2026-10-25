@@ -2,7 +2,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "./ui/badge";
+import { badgeVariants } from "./ui/badge";
 import { Ban, ChevronDown, CircleDollarSign, Download, Wallet } from "lucide-react";
 import { Progress } from "./ui/progress";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -195,8 +195,13 @@ const CollectionReportCard = ({ data }: { data: any }) => (
     </Card>
 );
 
-// Colapsada por default: título y nombre; al tocarla muestra el resto de los datos.
-const DistributorInfoCard = ({ data }: { data: any }) => (
+// La API manda el nivel como "Nivel Senior"; el badge solo muestra "Senior" o "Junior".
+const levelLabel = (name?: string) => name?.replace(/^nivel\s+/i, '').trim() || null;
+
+// Colapsada por default: título, nivel y nombre; al tocarla muestra el resto de los datos.
+const DistributorInfoCard = ({ data }: { data: any }) => {
+    const level = levelLabel(data.associateLevel?.name);
+    return (
     <Card className="shadow-sm">
         <Collapsible>
             <CollapsibleTrigger
@@ -204,7 +209,14 @@ const DistributorInfoCard = ({ data }: { data: any }) => (
                 data-testid="associate-info-toggle"
             >
                 <span className="space-y-2">
-                    <span className="block font-headline text-sm font-bold">Datos de la Asociada</span>
+                    <span className="flex items-center gap-2">
+                        <span className="font-headline text-sm font-bold">Datos de la Asociada</span>
+                        {level && (
+                            <span className={badgeVariants({ variant: 'secondary' })} data-testid="associate-level">
+                                {level}
+                            </span>
+                        )}
+                    </span>
                     <span className="block font-semibold text-base leading-tight">{data.associateInfo.name}</span>
                 </span>
                 <ChevronDown className="h-5 w-5 flex-shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
@@ -222,51 +234,8 @@ const DistributorInfoCard = ({ data }: { data: any }) => (
             </CollapsibleContent>
         </Collapsible>
     </Card>
-);
-
-const ProfileCard = ({ data }: { data: any }) => (
-     <Card className="shadow-sm flex flex-col justify-center">
-        <CardHeader className="p-3 pb-2">
-            <CardTitle className="font-headline text-sm font-bold text-center">
-                Nivel
-            </CardTitle>
-        </CardHeader>
-        <CardContent className="p-3 pt-0 flex flex-col items-center justify-center space-y-1">
-             <div className="relative w-16 h-16">
-                <svg viewBox="0 0 120 120" className="absolute inset-0 w-full h-full">
-                    <circle cx="60" cy="60" r="54" stroke="hsl(var(--primary))" strokeWidth="4" fill="hsl(var(--card))" />
-                </svg>
-                <div className="relative z-10 w-full h-full flex items-center justify-center">
-                    <svg
-                        className="w-12 h-12 text-primary"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                        >
-                        <path
-                            fillRule="evenodd"
-                            clipRule="evenodd"
-                            d="M12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2ZM9 7C9 5.34315 10.3431 4 12 4C13.6569 4 15 5.34315 15 7C15 8.65685 13.6569 10 12 10C10.3431 10 9 8.65685 9 7Z"
-                        />
-                        <path
-                            d="M5.62062 14.0049C3.4934 14.5492 2 16.2736 2 18.5V19C2 19.5523 2.44772 20 3 20H21C21.5523 20 22 19.5523 22 19V18.5C22 16.2736 20.5066 14.5492 18.3794 14.0049C16.9234 15.6516 14.6127 16.75 12 16.75C9.38729 16.75 7.07663 15.6516 5.62062 14.0049Z"
-                        />
-                        <path
-                            fillRule="evenodd"
-                            clipRule="evenodd"
-                            d="M12 16.75L15.09 19.25L14.25 15.5L17 13.25L13.24 12.9L12 9.5L10.76 12.9L7 13.25L9.75 15.5L8.91 19.25L12 16.75Z"
-                            fill="hsl(var(--accent))"
-                        />
-                    </svg>
-                </div>
-            </div>
-            <div className="text-center">
-               
-                <h3 className="font-headline text-base font-semibold mt-1">{data.associateLevel.name}</h3>
-            </div>
-        </CardContent>
-    </Card>
-);
+    );
+};
 
 export const DistributorDashboardSkeleton = () => (
     <div className="container mx-auto p-2 md:p-3 pb-20 md:pb-8">
@@ -322,7 +291,6 @@ export default function DistributorDashboard({
                     <PhoneTrackerCard phoneState={phoneState} />
                     <CollectionReportCard data={distributorData} />
                     <DistributorInfoCard data={distributorData} />
-                    <ProfileCard data={distributorData} />
                 </div>
             </main>
         </div>

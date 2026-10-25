@@ -131,6 +131,9 @@ test.describe('Datos de la Asociada', () => {
     await expect(toggle).toContainText('Datos de la Asociada');
     await expect(toggle).toContainText('ROSA MARTINEZ LOPEZ');
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    // El nivel vive como badge en la tarjeta; ya no hay tarjeta "Nivel".
+    await expect(toggle.getByTestId('associate-level')).toHaveText('Senior');
+    await expect(page.getByText('Nivel Senior')).toHaveCount(0);
     const box = await toggle.boundingBox();
     expect(box!.height).toBeGreaterThanOrEqual(44);
     await expect(page.getByText('No. Asociada')).toBeHidden();
