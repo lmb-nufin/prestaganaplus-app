@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { getPhoneOffer, getPhoneState, verifyDeviceSignature } from './data';
-import type { DeviceOperation, IssuanceMode, PhoneOfferOption, PhoneState } from './types';
+import type { DeviceOperation, IssuanceMode, IssuancePause, PhoneOfferOption, PhoneState } from './types';
 
 export const DEVICE_ONLY_MESSAGE = 'Por seguridad, tus vales se emiten desde tu Teléfono PrestaGana.';
 export const DEVICE_REPORTED_MESSAGE = 'Tu equipo está reportado. Acude a sucursal para reactivar.';
@@ -25,8 +25,27 @@ export function issuanceModeFor(state: PhoneState | null): IssuanceMode {
   return { mode: 'LIBRE' };
 }
 
+/** Texto del aviso "Emisión de vales en pausa" cuando el modo es BLOQUEADA; null si se puede emitir. */
+export function issuancePauseFor(state: PhoneState | null): IssuancePause | null {
+  const issuance = issuanceModeFor(state);
+  if (issuance.mode !== 'BLOQUEADA') return null;
+  const title = 'Emisión de vales en pausa.';
+  switch (state?.dispositivo?.estatus) {
+    case 'REPORTADO':
+      return { title, message: 'Reportaste tu Teléfono PrestaGana. Acude a tu sucursal para reactivarlo.' };
+    case 'REVOCADO':
+      return { title, message: 'Tu Teléfono PrestaGana fue desactivado. Acude a tu sucursal para reactivarlo.' };
+    default:
+      return { title, message: issuance.message };
+  }
+}
+
 export async function getIssuanceMode(associateNumber: string): Promise<IssuanceMode> {
   return issuanceModeFor(await getPhoneState(associateNumber));
+}
+
+export async function getIssuancePause(associateNumber: string): Promise<IssuancePause | null> {
+  return issuancePauseFor(await getPhoneState(associateNumber));
 }
 
 const readField = (formData: FormData, name: string) => {

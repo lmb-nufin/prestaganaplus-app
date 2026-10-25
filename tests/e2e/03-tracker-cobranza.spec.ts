@@ -45,8 +45,8 @@ test.describe('Desglose de cobranza y mora del teléfono', () => {
     await login(context, '1000013');
     await page.goto('/');
     const alert = page.getByTestId('phone-mora-AVISO');
-    await expect(alert).toContainText('Pago del equipo pendiente');
-    await expect(alert).toContainText('Debes $320.00 del equipo (3 días de atraso).');
+    await expect(alert).toContainText('Pago vencido');
+    await expect(alert).toContainText('Tienes un pago vencido de $320.00 (3 días). Págalo para evitar el bloqueo de tu Teléfono PrestaGana.');
     await alert.getByRole('button', { name: 'Pagar Ahora' }).click();
     await expect(page.getByRole('dialog')).toContainText('CLABE');
     // El teléfono va con su cuota más la mora; los vales quedan igual.
@@ -60,7 +60,7 @@ test.describe('Desglose de cobranza y mora del teléfono', () => {
     await page.goto('/');
     const alert = page.getByTestId('phone-mora-GRACIA');
     await expect(alert).toContainText('periodo de gracia');
-    await expect(alert).toContainText('Debes $960.00 del equipo (12 días de atraso).');
+    await expect(alert).toContainText('Tienes un pago vencido de $960.00 (12 días).');
     await expect(alert.getByRole('button', { name: 'Pagar Ahora' })).toBeEnabled();
   });
 });

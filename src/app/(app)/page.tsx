@@ -4,6 +4,7 @@ import DistributorDashboard, { DistributorDashboardSkeleton } from '@/components
 import { getAssociateDashboard, getPhoneState } from '@/lib/data';
 import { DemoBridgeSlot } from '@/components/demo-bridge-slot';
 import { auth } from '@/lib/auth';
+import { issuancePauseFor } from '@/lib/phone';
 
 // Esta es ahora la página principal de la APLICACIÓN
 export default async function AppPage() {
@@ -21,7 +22,11 @@ export default async function AppPage() {
       <DemoBridgeSlot />
       <Suspense fallback={<DistributorDashboardSkeleton />}>
         {distributorData ? (
-           <DistributorDashboard distributorData={distributorData} phoneState={phoneState} />
+           <DistributorDashboard
+             distributorData={distributorData}
+             phoneState={phoneState}
+             issuancePause={issuancePauseFor(phoneState)}
+           />
         ) : (
           <div className="container mx-auto p-4 text-center">
               <p>No se pudieron cargar los datos del dashboard.</p>
