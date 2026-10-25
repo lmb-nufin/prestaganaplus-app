@@ -61,8 +61,11 @@ export default function Header() {
     </div>
   );
 
+  // Fijo (no sticky): en iPhone el header sticky dejaba contenido debajo al hacer scroll.
+  // El div de abajo reserva su altura para que el contenido empiece debajo.
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background">
+    <>
+    <header className="fixed inset-x-0 top-0 z-50 w-full border-b bg-background">
       <div className="container flex h-14 items-center px-2 md:px-4">
         
         {/* --- VISTA MÓVIL --- */}
@@ -144,5 +147,7 @@ export default function Header() {
         </div>
       </div>
     </header>
+    <div aria-hidden="true" className="h-[57px] flex-shrink-0" />
+    </>
   );
 }

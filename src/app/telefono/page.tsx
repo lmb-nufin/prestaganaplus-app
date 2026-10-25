@@ -25,7 +25,7 @@ export default async function PhoneOfferPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-indigo-50/40">
-      <header className="sticky top-0 z-50 w-full border-b bg-background">
+      <header className="fixed inset-x-0 top-0 z-50 w-full border-b bg-background">
         <div className="container flex h-14 items-center px-4">
           <Button variant="ghost" asChild size="sm">
             <Link href="/vales/nuevo">
@@ -35,6 +35,7 @@ export default async function PhoneOfferPage() {
           </Button>
         </div>
       </header>
+      <div aria-hidden="true" className="h-[57px] flex-shrink-0" />
       <main className="w-full flex-grow">
         <div className="mx-auto w-full max-w-md px-2 py-4">
           <PhoneOfferView option={option} stpClabe={stpClabe} />

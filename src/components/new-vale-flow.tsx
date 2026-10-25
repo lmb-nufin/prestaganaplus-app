@@ -150,7 +150,7 @@ export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanIns
 
   return (
     <div className={cn('flex flex-col min-h-screen', isPersonalStep ? 'bg-indigo-50/40' : 'bg-muted/30')}>
-       <header className="sticky top-0 z-50 w-full border-b bg-background">
+       <header className="fixed inset-x-0 top-0 z-50 w-full border-b bg-background">
             <div className="container flex h-14 items-center px-4">
                  <Button variant="ghost" asChild size="sm">
                     <Link href="/vales">
@@ -160,6 +160,7 @@ export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanIns
                 </Button>
             </div>
        </header>
+       <div aria-hidden="true" className="h-[57px] flex-shrink-0" />
        <main className="flex-grow w-full">
          <div className="w-full max-w-md mx-auto py-4 px-2">
              <Card className={cn('shadow-lg', isPersonalStep && 'border-indigo-200')}>
