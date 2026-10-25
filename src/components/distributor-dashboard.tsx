@@ -217,7 +217,7 @@ const DistributorInfoCard = ({ data }: { data: any }) => {
                             </span>
                         )}
                     </span>
-                    <span className="block font-semibold text-base leading-tight">{data.associateInfo.name}</span>
+                    <span className="block text-sm font-medium leading-tight">{data.associateInfo.name}</span>
                 </span>
                 <ChevronDown className="h-5 w-5 flex-shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
             </CollapsibleTrigger>
