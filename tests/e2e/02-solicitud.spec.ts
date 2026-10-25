@@ -28,7 +28,8 @@ test.describe('Solicitud del teléfono', () => {
     await page.goto('/');
     const tracker = page.getByTestId('phone-tracker');
     await expect(tracker).toBeVisible();
-    await expect(tracker.getByTestId('phone-tracker-summary')).toHaveText('Solicitado · paso 1 de 5');
+    await expect(tracker.getByTestId('phone-tracker-summary')).toHaveText('Solicitado');
+    await expect(tracker.getByTestId('phone-tracker-step')).toHaveText('Paso 1 de 5');
     await openPhoneTracker(page);
     await expect(tracker.getByTestId('phone-tracker-current')).toHaveText(/Solicitado/);
     await expect(tracker.getByTestId('phone-tracker-todo')).toContainText('Transfiere el enganche a la CLABE de tu línea. Se registra automáticamente.');

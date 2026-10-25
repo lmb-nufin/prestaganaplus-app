@@ -130,10 +130,13 @@ test.describe('Mi Teléfono PrestaGana', () => {
     await page.goto('/');
     const toggle = page.getByTestId('phone-tracker-toggle');
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    await expect(toggle.getByTestId('phone-tracker-summary')).toHaveText('Activo · paso 5 de 5');
-    await expect(toggle).toContainText('Samsung Galaxy A17');
+    await expect(toggle.getByTestId('phone-tracker-summary')).toHaveText('Activo');
+    await expect(toggle.getByTestId('phone-tracker-step')).toHaveText('Paso 5 de 5');
+    await expect(page.getByTestId('phone-tracker')).toContainText('Samsung Galaxy A17');
     expect((await toggle.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-    await expect(page.getByTestId('phone-tracker-todo')).toHaveCount(0);
+    // El qué sigue se ve colapsada; el detalle de pasos no.
+    await expect(page.getByTestId('phone-tracker-todo')).toBeVisible();
+    await expect(page.getByTestId('phone-tracker-details')).toHaveCount(0);
 
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');

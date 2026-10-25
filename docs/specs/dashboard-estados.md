@@ -34,8 +34,8 @@ Asociada demo 1000013.
 - **Cambio de alcance (pedido del dueño):** la tarjeta "Nivel" se quita. El nivel pasa a un badge junto al título de la tarjeta colapsada, solo con "Senior" o "Junior" (se quita el prefijo "Nivel " que manda la API). Si la API no manda nivel, no hay badge.
 
 ## 4b. "Mi Teléfono PrestaGana" desplegable (pedido del dueño)
-- Por default **colapsada**: título, resumen del estado actual ("{paso} · paso n de 5", "Equipo reportado"/"Equipo desactivado" o "Solicitud cancelada") y el modelo si ya hay equipo. Chevron a la derecha.
-- Al tocarla se expande y muestra lo de hoy: folio, avance de 5 pasos, "Qué sigue" e IMEI.
+- Por default **colapsada**, pero con la etapa bien visible: título, etapa actual en una píldora ("Solicitado"… "Activo", "Equipo reportado"/"Equipo desactivado" en rojo o "Solicitud cancelada"), "Paso n de 5", barra de avance de 5 segmentos, el "Qué sigue" y el modelo si ya hay equipo. Chevron a la derecha.
+- Al tocarla se expande y muestra el detalle: folio, los 5 pasos e IMEI.
 - Mismo patrón que "Datos de la Asociada": `Collapsible`, `aria-expanded`, área táctil ≥44px, animación.
 
 ## 5. Pruebas (DEMO_MODE=true, Playwright, 390x844)
