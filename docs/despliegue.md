@@ -29,11 +29,31 @@ npm start -- -p 3000
 | `AUTH_SECRET` | **Obligatoria.** Valor aleatorio largo, propio de producción. | Se genera con `npx auth secret` o `openssl rand -base64 32`. No se reutiliza el de demo ni se sube al repo. |
 | `API_BASE_URL` | **Obligatoria.** URL de la API .NET, terminada en `/`. | Sin ella (y sin `DEMO_MODE=true`) la app falla al arrancar las consultas en producción, a propósito. |
 | `DEMO_MODE` | `false` o sin definir. | `true` sirve datos simulados en memoria: **nunca** en producción. |
-| `FEATURE_PRESTAMO_PERSONAL` | `false` hasta que el backend tenga `prestamoPersonal/{n}` y `tipoVale` en `POST vales`. | Sin definir = apagada fuera de demo. |
-| `FEATURE_TELEFONO` | `false` hasta que el backend tenga `telefono/*` y `dispositivo/*` y la miniapp esté lista. | Sin definir = apagada fuera de demo. |
+| `FEATURE_PRESTAMO_PERSONAL` | `false` hasta que backend acepte `tipoVale` en `POST vales` y la app esté lista para encenderlo. | Sin definir = apagada fuera de demo. |
+| `FEATURE_TELEFONO` | `false` hasta que backend tenga `telefono/*` y `dispositivo/*` y la miniapp Android esté lista. | Sin definir = apagada fuera de demo. |
 | `TZ` | `America/Mexico_City` | |
 
-Con las dos `FEATURE_*` apagadas, la app usa solo los endpoints de la versión original (ver `docs/api-contracts.md`). Cuando el backend entregue una función, se enciende su variable y se reinicia el proceso; no hace falta otro build.
+Cuando el backend entregue una función, se enciende su variable y se reinicia el proceso; no hace falta otro build.
+
+## Endpoints que llama la app en el piloto
+
+Con las dos `FEATURE_*` apagadas, la app usa solo los endpoints de la versión original, relativos a `API_BASE_URL`:
+
+| Método y ruta | Para qué |
+|---|---|
+| `GET dashboard/{n}` | Login (perfil de la asociada) y "Olvidé mi NIP" |
+| `GET dashboardData/{n}` | Dashboard: línea, situación de pago, referencias de pago y relación de cobro |
+| `GET valesDashboard/{n}` | Lista de vales |
+| `GET vales/{folio}` | Detalle del vale |
+| `POST vales` | Crear vale de cliente nuevo o existente |
+| `PUT vales/{folio}/status` | Firmar el vale |
+| `DELETE vales/{folio}` | Cancelar el vale |
+| `GET clients/{curp}` | Buscar cliente existente |
+| `POST sms/send` | Enviar el OTP de firma |
+| `GET validarotp/{n}` | Validar el OTP |
+| `POST sms/sendNIP` | "Olvidé mi NIP" |
+
+Con Préstamo Personal encendido se suman `GET prestamoPersonal/{n}` y `POST vales` con `tipoVale`; con el Teléfono, `telefono/*` y `dispositivo/*` (ver `docs/api-contracts.md`).
 
 ## Recursos que carga el navegador
 

@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page, type Request } from '@playwright/test';
-import { fillPersonalCash, login } from './helpers';
+import { confirmNewVale, fillNewClientForm, fillPersonalCash, login, signWithOtp } from './helpers';
 
 // Este archivo corre contra el segundo servidor demo (puerto 3131), con FEATURE_PRESTAMO_PERSONAL=false
 // y FEATURE_TELEFONO=false. Las server actions se capturan en el servidor normal (3130, mismo build).
@@ -58,9 +58,13 @@ test.describe('Interruptores apagados (Préstamo Personal y Teléfono)', () => {
     await expect(page.getByTestId('nav-new-vale-paused')).toHaveCount(0);
     await page.getByRole('link', { name: 'Vale Nuevo' }).first().click();
     await expect(page).toHaveURL(/\/vales\/nuevo/);
-    // Sin restricción del teléfono, el formulario de cliente nuevo está disponible.
+    // Sin restricción del teléfono: crea y firma un vale de cliente nuevo con OTP + NIP, sin firma del equipo.
     await page.getByRole('button', { name: /Cliente Nuevo/ }).click();
-    await expect(page.getByLabel('Nombre(s)')).toBeVisible();
+    await fillNewClientForm(page);
+    await confirmNewVale(page);
+    await expect(page).toHaveURL(/\/sign\/1000012-/);
+    await signWithOtp(page);
+    await expect(page.getByText('FIRMADO').first()).toBeVisible();
   });
 
   test('sin mora del teléfono en Situación Actual', async ({ context, page }) => {
