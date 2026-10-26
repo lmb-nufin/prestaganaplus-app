@@ -63,7 +63,7 @@ type State = {
 };
 const initialState: State = { message: '', errors: {}, folio: undefined };
 
-const plazosPermitidos = [8, 10, 12, 14];
+const plazosPermitidos = [8, 10, 12];
 
 const signatureContext = (form: HTMLFormElement) => ({
   operacion: 'CREAR_VALE' as const,
@@ -107,8 +107,8 @@ export function ValeCreationForm({ existingClientData = null, deviceSignatureReq
   const isRenewedFlow = !!existingClientData;
 
   const loanAmounts = useMemo(() => {
-    const maxAmount = isRenewedFlow ? 8500 : 5000;
-    return Array.from({ length: (maxAmount - 4500) / 500 + 1 }, (_, i) => 4500 + i * 500);
+    const maxAmount = isRenewedFlow ? 9000 : 5500;
+    return Array.from({ length: (maxAmount - 5000) / 500 + 1 }, (_, i) => 5000 + i * 500);
   }, [isRenewedFlow]);
   
   

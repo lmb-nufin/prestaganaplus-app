@@ -4,6 +4,8 @@ import { Inter, Poppins, PT_Sans } from "next/font/google";
 import "./globals.css";
 import { NotificationsProvider } from "@/context/notifications-context";
 import { Toaster } from "@/components/ui/toaster";
+import { InactivityTimeoutHandler } from "@/components/inactivity-timeout-handler";
+import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-poppins" });
@@ -28,6 +30,10 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${poppins.variable} ${ptSans.variable}`}>
       <body className={inter.className}>
+        {/* Cierra la sesión tras 5 minutos sin actividad, como la app en producción. */}
+        <Suspense fallback={null}>
+          <InactivityTimeoutHandler />
+        </Suspense>
         <NotificationsProvider>
           {children}
         </NotificationsProvider>

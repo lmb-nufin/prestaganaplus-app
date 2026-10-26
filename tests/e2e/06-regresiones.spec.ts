@@ -25,8 +25,8 @@ test.describe('Regresiones (1000001, sin equipo)', () => {
     await page.getByRole('button', { name: 'Buscar Cliente' }).click();
     await expect(page.getByLabel('Nombre(s)')).toHaveValue('JUANA');
     await expect(page.locator('input[name="birthDate"]')).toHaveValue('1990-01-01');
-    await pickOption(page, 0, '$8,500.00');
-    await pickOption(page, 1, '14 Quincenas');
+    await pickOption(page, 0, '$9,000.00');
+    await pickOption(page, 1, '12 Quincenas');
     await confirmNewVale(page);
     await expect(page).toHaveURL(/\/sign\/1000001-/);
     await expect(page.getByText('1 de enero, 1990')).toBeVisible();

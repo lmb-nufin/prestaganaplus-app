@@ -4,7 +4,7 @@
 
 ## Reglas de negocio
 
-1. **Montos:** de $4,500 a $8,500 en saltos de $500, igual que cliente existente. **Plazos:** 8, 10, 12 y 14 quincenas.
+1. **Montos:** de $5,000 a $9,000 en saltos de $500, igual que cliente existente (actualizado a los montos de producción). **Plazos:** 8, 10, 12 y 14 quincenas.
 2. **No sale de su línea de crédito.** No descuenta `available` ni suma a `placed`.
 3. **Solo un préstamo personal activo a la vez.** Un vale personal en proceso (`PENDIENTE` o `FIRMADO`) o con saldo bloquea uno nuevo.
 4. **Elegibilidad:** `paymentStatus.status === "Al Día"` y al menos 3 meses desde `activationDate`.

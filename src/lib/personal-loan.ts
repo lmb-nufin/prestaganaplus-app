@@ -4,8 +4,8 @@ import { addMonths } from 'date-fns';
 import { getAssociateDashboard, getPersonalLoanInfo, getVales } from './data';
 import type { PersonalLoanEligibility } from './types';
 
-// Mismos montos que cliente existente: de $4,500 a $8,500 en saltos de $500.
-export const PERSONAL_LOAN_AMOUNTS = Array.from({ length: (8500 - 4500) / 500 + 1 }, (_, i) => 4500 + i * 500);
+// Mismos montos que cliente existente: de $5,000 a $9,000 en saltos de $500.
+export const PERSONAL_LOAN_AMOUNTS = Array.from({ length: (9000 - 5000) / 500 + 1 }, (_, i) => 5000 + i * 500);
 export const PERSONAL_LOAN_INSTALLMENTS = [8, 10, 12, 14];
 export const PERSONAL_LOAN_MIN_MONTHS = 3;
 

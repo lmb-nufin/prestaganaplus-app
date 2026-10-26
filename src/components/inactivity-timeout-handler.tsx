@@ -41,7 +41,9 @@ export function InactivityTimeoutHandler() {
       window.addEventListener('mousemove', onActivity);
       window.addEventListener('keydown', onActivity);
       window.addEventListener('click', onActivity);
-      window.addEventListener('scroll', onActivity);
+      window.addEventListener('touchstart', onActivity, { passive: true });
+      // En captura: el scroll vive dentro de AppShell y no llega a window por burbujeo.
+      window.addEventListener('scroll', onActivity, true);
       resetTimer();
     }
 
@@ -50,7 +52,8 @@ export function InactivityTimeoutHandler() {
         window.removeEventListener('mousemove', onActivity);
         window.removeEventListener('keydown', onActivity);
         window.removeEventListener('click', onActivity);
-        window.removeEventListener('scroll', onActivity);
+        window.removeEventListener('touchstart', onActivity);
+        window.removeEventListener('scroll', onActivity, true);
         clearTimeout(inactivityTimer);
       }
     };

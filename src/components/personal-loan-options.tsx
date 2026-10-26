@@ -41,7 +41,7 @@ export function PersonalLoanOptions({
             <Banknote className="h-6 w-6 text-indigo-600 flex-shrink-0" />
             <div className="flex-1 min-w-0 text-left">
               <h3 className="font-semibold text-indigo-900">Efectivo</h3>
-              <p className="text-xs text-indigo-700">De $4,500 a $8,500, a 8–14 quincenas</p>
+              <p className="text-xs text-indigo-700">De $5,000 a $9,000, a 8–14 quincenas</p>
             </div>
             <ChevronRight className="h-4 w-4 text-indigo-400 flex-shrink-0" />
           </div>

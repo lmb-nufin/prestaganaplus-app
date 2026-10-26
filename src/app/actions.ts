@@ -501,18 +501,19 @@ export async function cancelVale(prevState: any, formData: FormData) {
     }
 
     try {
-        const deleted = await deleteValeByFolio(folio);
-        if (deleted) {
+        const result = await deleteValeByFolio(folio);
+        if (result.success) {
             revalidatePath('/');
             revalidatePath('/vales');
             revalidatePath(`/vales/${folio}`); 
             revalidatePath(`/sign/${folio}`);
-            return { success: true, message: 'Vale cancelado exitosamente.' };
+            return { success: true, message: result.message };
         }
-        return { success: false, message: 'No se pudo encontrar el vale para cancelar.' };
+        // Si la API lo rechaza (p. ej. un vale ya activo), se muestra su mensaje.
+        return { success: false, message: result.message };
     } catch (error) {
         console.error('Error cancelling vale:', error);
-        return { success: false, message: 'Ocurrió un error al cancelar el vale.' };
+        return { success: false, message: 'Ocurrió un error inesperado al cancelar el vale.' };
     }
 }
 

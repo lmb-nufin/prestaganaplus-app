@@ -1,0 +1,19 @@
+# Firebase App Hosting, igual que la app actual en producción. Ver docs/despliegue.md.
+# API_BASE_URL va por ambiente (apphosting.<ambiente>.yaml o la consola), no aquí.
+# AUTH_SECRET es un secreto de Cloud Secret Manager: nunca su valor en este archivo.
+
+runConfig:
+  maxInstances: 1
+
+env:
+  - variable: DEMO_MODE
+    value: "false"
+  # Préstamo Personal y Teléfono apagados hasta que backend tenga sus endpoints.
+  - variable: FEATURE_PRESTAMO_PERSONAL
+    value: "false"
+  - variable: FEATURE_TELEFONO
+    value: "false"
+  - variable: TZ
+    value: America/Mexico_City
+  - variable: AUTH_SECRET
+    secret: prestaganaplus-auth-secret
