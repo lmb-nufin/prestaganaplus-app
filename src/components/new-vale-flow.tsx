@@ -53,9 +53,11 @@ type NewValeFlowProps = {
   personalLoanInstallments: number[];
   phoneOffer: PhoneOfferOption;
   issuance: IssuanceMode;
+  // Interruptores del servidor: una función apagada no se muestra.
+  features?: { personalLoan: boolean; phone: boolean };
 };
 
-export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanInstallments, phoneOffer, issuance }: NewValeFlowProps) {
+export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanInstallments, phoneOffer, issuance, features = { personalLoan: true, phone: true } }: NewValeFlowProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [existingClientData, setExistingClientData] = useState<ExistingClient | null>(null);
@@ -149,6 +151,7 @@ export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanIns
     <PersonalLoanOptions
       personalLoan={personalLoan}
       phoneOffer={phoneOffer}
+      features={features}
       onCash={() => personalLoan.eligible && goTo('personal_cash')}
     />
   );
@@ -167,7 +170,12 @@ export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanIns
 
   const renderStep = (deviceSignatureRequired: boolean) => {
     const choice = (
-      <NewOrRenewedChoice onChoice={handleChoice} personalLoan={personalLoan} phoneOfferAvailable={phoneOffer.available} />
+      <NewOrRenewedChoice
+        onChoice={handleChoice}
+        personalLoan={personalLoan}
+        phoneOfferAvailable={phoneOffer.available}
+        showPersonal={features.personalLoan || features.phone}
+      />
     );
     switch (step) {
       case 'choice':

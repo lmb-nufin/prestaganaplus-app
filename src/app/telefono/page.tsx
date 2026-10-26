@@ -6,12 +6,16 @@ import { getPhoneOfferOption } from '@/lib/phone';
 import { PhoneOfferView } from '@/components/phone-offer';
 import { SubPageHeader } from '@/components/sub-page-header';
 import { AppShell } from '@/components/app-shell';
+import { isPhoneEnabled } from '@/lib/features';
 
 export default async function PhoneOfferPage() {
   const session = await auth();
   const associateNumber = session?.user?.associateNumber;
   if (!associateNumber) {
     redirect('/login');
+  }
+  if (!isPhoneEnabled()) {
+    redirect('/vales/nuevo');
   }
 
   // Solo la UX: requestPhone vuelve a validar todo antes de crear la solicitud.

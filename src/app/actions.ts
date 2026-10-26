@@ -6,6 +6,7 @@ import { addVale, findValeByFolio, getVales as getValesFromDb, updateValeStatus 
 import { apiFetch } from '@/lib/api';
 import { getPersonalLoanEligibility, PERSONAL_LOAN_AMOUNTS, PERSONAL_LOAN_INSTALLMENTS } from '@/lib/personal-loan';
 import { getIssuanceMode, getPhoneOfferOption, requireDeviceAuthorization } from '@/lib/phone';
+import { isPersonalLoanEnabled, isPhoneEnabled } from '@/lib/features';
 import type { DeviceChallenge, DeviceOperation, DeviceReportReason } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { signIn, signOut, auth } from '@/lib/auth';
@@ -180,6 +181,9 @@ export async function createPersonalLoanVale(prevState: any, formData: FormData)
         return { success: false, message: 'Error de autenticación: No se pudo obtener el número de asociada.' };
     }
     const associateNumber = session.user.associateNumber;
+    if (!isPersonalLoanEnabled()) {
+        return { success: false, message: 'El préstamo personal no está disponible por ahora.' };
+    }
 
     // Se vuelve a evaluar aquí: la página pudo cargarse antes de que cambiara el estado (p. ej. otra pestaña).
     const eligibility = await getPersonalLoanEligibility(associateNumber);
@@ -556,6 +560,9 @@ export async function requestPhone(prevState: any, formData: FormData) {
         return { success: false, message: 'No se pudo autenticar a la asociada.' };
     }
     const associateNumber = session.user.associateNumber;
+    if (!isPhoneEnabled()) {
+        return { success: false, message: 'El Teléfono PrestaGana no está disponible por ahora.' };
+    }
 
     // Se vuelve a evaluar: la oferta pudo cambiar desde que se cargó la página (p. ej. otra pestaña).
     const option = await getPhoneOfferOption(associateNumber);

@@ -11,6 +11,8 @@ interface NewOrRenewedChoiceProps {
   personalLoan: PersonalLoanOption;
   // La opción se abre si hay efectivo o teléfono disponible.
   phoneOfferAvailable?: boolean;
+  // false cuando Préstamo Personal y Teléfono están apagados en el servidor.
+  showPersonal?: boolean;
 }
 
 const blockLabels: Record<PersonalLoanBlockReason, string> = {
@@ -20,7 +22,7 @@ const blockLabels: Record<PersonalLoanBlockReason, string> = {
   NO_DISPONIBLE: 'Servicio no disponible',
 };
 
-export function NewOrRenewedChoice({ onChoice, personalLoan, phoneOfferAvailable = false }: NewOrRenewedChoiceProps) {
+export function NewOrRenewedChoice({ onChoice, personalLoan, phoneOfferAvailable = false, showPersonal = true }: NewOrRenewedChoiceProps) {
   const personalEnabled = personalLoan.eligible || phoneOfferAvailable;
   return (
     <div className="space-y-3">
@@ -54,6 +56,7 @@ export function NewOrRenewedChoice({ onChoice, personalLoan, phoneOfferAvailable
           </div>
         </div>
       </Button>
+      {showPersonal && (
       <div className="space-y-1">
         <Button
           variant="outline"
@@ -85,6 +88,7 @@ export function NewOrRenewedChoice({ onChoice, personalLoan, phoneOfferAvailable
           </p>
         )}
       </div>
+      )}
     </div>
   );
 }
