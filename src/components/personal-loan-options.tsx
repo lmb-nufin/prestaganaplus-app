@@ -19,13 +19,17 @@ export function PersonalLoanOptions({
   personalLoan,
   phoneOffer,
   onCash,
+  features = { personalLoan: true, phone: true },
 }: {
   personalLoan: PersonalLoanOption;
   phoneOffer: PhoneOfferOption;
   onCash: () => void;
+  // Interruptores del servidor: una función apagada no se muestra.
+  features?: { personalLoan: boolean; phone: boolean };
 }) {
   return (
     <div className="space-y-3">
+      {features.personalLoan && (
       <div className="space-y-1">
         <Button
           variant="outline"
@@ -56,8 +60,9 @@ export function PersonalLoanOptions({
           </p>
         )}
       </div>
+      )}
 
-      <PhoneOfferCard phoneOffer={phoneOffer} />
+      {features.phone && <PhoneOfferCard phoneOffer={phoneOffer} />}
     </div>
   );
 }

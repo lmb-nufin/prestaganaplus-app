@@ -14,6 +14,11 @@ import type {
 } from './types';
 
 import { apiFetch } from './api';
+import { isPersonalLoanEnabled, isPhoneEnabled } from './features';
+
+// Con un interruptor apagado no se llama ningún endpoint de esa función (ver src/lib/features.ts).
+const PERSONAL_LOAN_OFF = 'El préstamo personal no está disponible por ahora.';
+const PHONE_OFF = 'El Teléfono PrestaGana no está disponible por ahora.';
 
 export const findUserByAssociateNumber = async (associateNumber: string) => {
   try {
@@ -305,6 +310,7 @@ export const updateUserNip = async (associateId: string, newNip: string): Promis
   */
 };
 export const getPersonalLoanInfo = async (associateNumber: string): Promise<PersonalLoanInfo | null> => {
+  if (!isPersonalLoanEnabled()) return null;
   try {
     const response = await apiFetch(`prestamoPersonal/${associateNumber}`, { cache: 'no-store' });
     if (!response.ok) {
@@ -330,6 +336,7 @@ export const getPersonalLoanInfo = async (associateNumber: string): Promise<Pers
 export const addPersonalLoanVale = async (
   valeData: Record<string, unknown>
 ): Promise<{ ok: true; folio: string } | { ok: false; message: string }> => {
+  if (!isPersonalLoanEnabled()) return { ok: false, message: PERSONAL_LOAN_OFF };
   try {
     const response = await apiFetch(`vales`, {
       method: 'POST',
@@ -441,6 +448,7 @@ const readJson = async (response: Response) => {
 };
 
 export const getPhoneOffer = async (associateNumber: string): Promise<PhoneOffer | null> => {
+  if (!isPhoneEnabled()) return null;
   try {
     const response = await apiFetch(`telefono/oferta/${associateNumber}`, { cache: 'no-store' });
     if (!response.ok) {
@@ -456,8 +464,12 @@ export const getPhoneOffer = async (associateNumber: string): Promise<PhoneOffer
   }
 };
 
-/** Estado del teléfono. null = no se pudo saber (las acciones de emisión lo tratan como bloqueo). */
+/**
+ * Estado del teléfono. null = no se pudo saber (las acciones de emisión lo tratan como bloqueo).
+ * Con el Teléfono apagado: sin equipo y sin restricción, sin llamar a la API.
+ */
 export const getPhoneState = async (associateNumber: string): Promise<PhoneState | null> => {
+  if (!isPhoneEnabled()) return { emisionRestringida: false };
   try {
     const response = await apiFetch(`telefono/estado/${associateNumber}`, { cache: 'no-store' });
     if (!response.ok) {
@@ -500,6 +512,7 @@ export const createPhoneRequest = async (payload: {
   quincenas: number;
   aceptoTerminos: true;
 }): Promise<ApiResult<{ folio: string; estatus: PhoneRequestStatus }>> => {
+  if (!isPhoneEnabled()) return { ok: false, message: PHONE_OFF };
   const result = await postJson('telefono/solicitudes', payload, 'No se pudo registrar la solicitud.');
   if (!result.ok) return result;
   const { folio, estatus } = result.body ?? {};
@@ -515,6 +528,7 @@ export const requestDeviceChallenge = async (payload: {
   folio?: string;
   monto?: number;
 }): Promise<ApiResult<{ challenge: DeviceChallenge }>> => {
+  if (!isPhoneEnabled()) return { ok: false, message: PHONE_OFF };
   const result = await postJson('dispositivo/desafio', payload, 'No se pudo generar el desafío del equipo.');
   if (!result.ok) return result;
   const { challengeId, challenge, expiraEn } = result.body ?? {};
@@ -537,6 +551,7 @@ export const verifyDeviceSignature = async (payload: {
   folio?: string;
   monto?: number;
 }): Promise<{ valido: boolean; motivo?: string }> => {
+  if (!isPhoneEnabled()) return { valido: false, motivo: PHONE_OFF };
   const result = await postJson('dispositivo/verificar', payload, 'No se pudo verificar el equipo.');
   if (!result.ok) return { valido: false, motivo: result.message };
   return result.body?.valido === true
@@ -548,6 +563,7 @@ export const reportDevice = async (payload: {
   associateNumber: string;
   motivo: DeviceReportReason;
 }): Promise<ApiResult<{}>> => {
+  if (!isPhoneEnabled()) return { ok: false, message: PHONE_OFF };
   const result = await postJson('dispositivo/reporte', payload, 'No se pudo reportar el equipo.');
   return result.ok ? { ok: true } : result;
 };

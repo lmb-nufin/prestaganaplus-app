@@ -6,7 +6,8 @@ import { getPersonalLoanEligibility, PERSONAL_LOAN_AMOUNTS, PERSONAL_LOAN_INSTAL
 import { getIssuanceMode, getPhoneOfferOption } from '@/lib/phone';
 import { NewValeFlow } from '@/components/new-vale-flow';
 import { DemoBridgeSlot } from '@/components/demo-bridge-slot';
-import type { PersonalLoanOption } from '@/lib/types';
+import { getFeatures } from '@/lib/features';
+import type { PersonalLoanEligibility, PersonalLoanOption, PhoneOfferOption } from '@/lib/types';
 
 export default async function NewValePage() {
   const session = await auth();
@@ -15,9 +16,13 @@ export default async function NewValePage() {
     redirect('/login');
   }
 
+  // Con un interruptor apagado no se consulta esa función (ver src/lib/features.ts).
+  const features = getFeatures();
+  const personalOff: PersonalLoanEligibility = { eligible: false, reason: 'NO_DISPONIBLE', message: 'No disponible.' };
+  const phoneOff: PhoneOfferOption = { available: false, reason: 'NO_DISPONIBLE', message: 'No disponible.' };
   const [eligibility, phoneOffer, issuance] = await Promise.all([
-    getPersonalLoanEligibility(associateNumber),
-    getPhoneOfferOption(associateNumber),
+    features.personalLoan ? getPersonalLoanEligibility(associateNumber) : personalOff,
+    features.phone ? getPhoneOfferOption(associateNumber) : phoneOff,
     getIssuanceMode(associateNumber),
   ]);
 
@@ -38,6 +43,7 @@ export default async function NewValePage() {
       personalLoanInstallments={PERSONAL_LOAN_INSTALLMENTS}
       phoneOffer={phoneOffer}
       issuance={issuance}
+      features={features}
     />
     </>
   );
