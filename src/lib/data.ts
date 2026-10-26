@@ -104,15 +104,36 @@ export const updateValeStatus = async (folio: string, status: 'PENDIENTE' | 'FIR
     }
 };
 
-export const deleteValeByFolio = async (folio: string): Promise<boolean> => {
+export type DeleteValeResponse = { success: boolean; message: string };
+
+/** Cancela un vale. Si la API lo rechaza (p. ej. un vale ya activo), regresa su mensaje. */
+export const deleteValeByFolio = async (folio: string): Promise<DeleteValeResponse> => {
     try {
         const response = await apiFetch(`vales/${folio}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: { Accept: '*/*', 'Content-Type': 'application/json' },
+            cache: 'no-store',
         });
-        return response.ok;
+        // Se lee como texto: la API no siempre responde JSON.
+        const responseText = await response.text();
+        let data: any = {};
+        try {
+            data = JSON.parse(responseText);
+        } catch {
+            console.warn('[DELETE VALE] La respuesta no es un JSON válido:', responseText);
+        }
+        if (response.ok) {
+            return { success: true, message: data?.message || data?.Message || 'Vale cancelado exitosamente.' };
+        }
+        const message =
+            data?.message ||
+            data?.Message ||
+            (responseText && responseText.length < 200 ? responseText : null) ||
+            'No se pudo cancelar el vale.';
+        return { success: false, message };
     } catch (error) {
         console.error(`Network error when deleting vale ${folio}:`, error);
-        return false;
+        return { success: false, message: 'Ocurrió un error de conexión al intentar cancelar el vale.' };
     }
 };
 

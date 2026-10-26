@@ -10,7 +10,8 @@ Next.js 15 (App Router, server actions), TypeScript, NextAuth v5 (credentials), 
 
 | Tema | Archivo |
 |---|---|
-| Despliegue en servidor propio (sin Vercel), variables de entorno y verificación | `docs/despliegue.md` |
+| Despliegue en Firebase App Hosting (sin Vercel), variables de entorno y verificación | `docs/despliegue.md`, `apphosting.yaml` |
+| Diferencias con la app en producción y cómo se igualaron | `docs/specs/paridad-produccion.md` |
 | Contratos de la API (dashboard, teléfono, dispositivo) | `docs/api-contracts.md` |
 | Interruptores por función para el piloto | `docs/specs/interruptores-piloto.md` |
 | Préstamo Personal | `docs/specs/prestamo-personal.md` |

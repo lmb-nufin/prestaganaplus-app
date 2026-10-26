@@ -217,7 +217,7 @@ const store = ((globalThis as any).__prestaganaMockVales ??= [
 ] as Vale[]);
 
 // Reglas que la API .NET debe validar del lado del servidor para tipoVale PERSONAL.
-const PERSONAL_AMOUNTS = Array.from({ length: (8500 - 4500) / 500 + 1 }, (_, i) => 4500 + i * 500);
+const PERSONAL_AMOUNTS = Array.from({ length: (9000 - 5000) / 500 + 1 }, (_, i) => 5000 + i * 500);
 const PERSONAL_INSTALLMENTS = [8, 10, 12, 14];
 
 const activePersonalVale = (associateNumber: string) =>

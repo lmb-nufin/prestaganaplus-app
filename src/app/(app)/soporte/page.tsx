@@ -42,14 +42,14 @@ export default function SoportePage() {
                 title="WhatsApp"
                 description="La forma más rápida de obtener ayuda."
                 buttonText="Iniciar Chat"
-                buttonLink="https://wa.me/5215532415220"
+                buttonLink="https://wa.me/5533349279"
             />
             <SupportCard
                 icon={Phone}
                 title="Teléfono"
                 description="Llámanos para soporte directo."
                 buttonText="Llamar Ahora"
-                buttonLink="tel:8000830898"
+                buttonLink="tel:5662302984"
             />
         </div>
     </div>

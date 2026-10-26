@@ -1,39 +1,46 @@
-# Despliegue de la web app PrestaGana+ (servidor propio, sin Vercel)
+# Despliegue de la web app PrestaGana+ (Firebase App Hosting, sin Vercel)
 
-La app es Next.js 15 con server actions: corre como un proceso de Node.js. No es un sitio estático: necesita un servidor que ejecute `next start` detrás de HTTPS.
+La app se despliega igual que la app actual en producción: un backend de **Firebase App Hosting** que construye con `npm install` y `npm run build` y arranca con `npm start`. Es Next.js 15 con server actions, así que corre como proceso de Node.js, no como sitio estático.
 
-## Requisitos
+## Firebase App Hosting (recomendado)
 
-- Node.js 20 LTS o 22 LTS y npm.
-- Salida de red del servidor hacia `API_BASE_URL` (la API .NET). No llama a ningún otro servicio desde el servidor.
+1. Crear un backend nuevo de App Hosting para el piloto, conectado a este repositorio, rama `main` (o fijado a la etiqueta del piloto). Usar un backend aparte del de la app actual, para no tocar producción.
+2. `apphosting.yaml` (en la raíz del repo) ya trae las variables del piloto: `DEMO_MODE=false`, los dos interruptores en `false`, `TZ` y una instancia.
+3. Crear el secreto de sesión, propio de este backend:
+
+   ```bash
+   firebase apphosting:secrets:set prestaganaplus-auth-secret
+   ```
+
+   El valor es aleatorio y largo (`openssl rand -base64 32`). No se reutiliza el de otro ambiente ni se escribe en ningún archivo del repo.
+4. Definir `API_BASE_URL` del ambiente en un `apphosting.<ambiente>.yaml` o en la consola de Firebase, como en la app actual. Debe terminar en `/`.
+5. Desplegar y verificar (ver abajo).
+
+## Servidor propio (alternativa)
+
+- Node.js 20 LTS o 22 LTS. `npm ci`, `npm run build`, `npm start -- -p 3000`, con el proceso vivo bajo el gestor de servicios de Sistemas.
+- Detrás de un proxy inverso con HTTPS que reenvíe `Host` y `X-Forwarded-Proto` (NextAuth usa `trustHost: true`).
+- Las mismas variables que `apphosting.yaml`, más `API_BASE_URL` y `AUTH_SECRET`.
+
+## Requisitos comunes
+
+- Salida de red del servidor hacia `API_BASE_URL`. No llama a ningún otro servicio desde el servidor.
 - HTTPS en el dominio público (las cookies de sesión son seguras).
-- Zona horaria `America/Mexico_City` en el proceso (`TZ`), para fechas y vencimientos.
-
-## Construir y arrancar
-
-```bash
-npm ci
-npm run build
-npm start -- -p 3000
-```
-
-- `npm start` corre `next start` en el puerto indicado. Mantén el proceso vivo con el gestor de servicios que use Sistemas (systemd, PM2, servicio de Windows, contenedor).
-- Antes del proxy, `GET /login` responde 200: sirve como health check.
-- Detrás de un proxy inverso (Nginx, IIS, balanceador), reenvía `Host` y `X-Forwarded-Proto`. NextAuth usa el host de la petición (`trustHost: true`).
-- Una sola instancia es suficiente para el piloto. Si hay varias, todas deben compartir el mismo `AUTH_SECRET`.
+- `GET /login` responde 200: sirve como health check.
+- Una instancia basta para el piloto (igual que producción). Si hay varias, todas comparten el mismo `AUTH_SECRET`.
 
 ## Variables de entorno
 
 | Variable | Producción (piloto) | Notas |
 |---|---|---|
-| `AUTH_SECRET` | **Obligatoria.** Valor aleatorio largo, propio de producción. | Se genera con `npx auth secret` o `openssl rand -base64 32`. No se reutiliza el de demo ni se sube al repo. |
+| `AUTH_SECRET` | **Obligatoria.** Valor aleatorio largo, propio de este ambiente. | En App Hosting es el secreto `prestaganaplus-auth-secret`. Se genera con `openssl rand -base64 32`. Nunca en un archivo del repo. |
 | `API_BASE_URL` | **Obligatoria.** URL de la API .NET, terminada en `/`. | Sin ella (y sin `DEMO_MODE=true`) la app falla al arrancar las consultas en producción, a propósito. |
 | `DEMO_MODE` | `false` o sin definir. | `true` sirve datos simulados en memoria: **nunca** en producción. |
 | `FEATURE_PRESTAMO_PERSONAL` | `false` hasta que backend acepte `tipoVale` en `POST vales` y la app esté lista para encenderlo. | Sin definir = apagada fuera de demo. |
 | `FEATURE_TELEFONO` | `false` hasta que backend tenga `telefono/*` y `dispositivo/*` y la miniapp Android esté lista. | Sin definir = apagada fuera de demo. |
 | `TZ` | `America/Mexico_City` | |
 
-Cuando el backend entregue una función, se enciende su variable y se reinicia el proceso; no hace falta otro build.
+Cuando el backend entregue una función, se cambia su variable a `true` (en `apphosting.yaml` o en la consola) y se vuelve a desplegar o reiniciar; el código no cambia.
 
 ## Endpoints que llama la app en el piloto
 
