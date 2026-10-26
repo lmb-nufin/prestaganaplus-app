@@ -58,6 +58,8 @@ test.describe('Equipo reportado (1000012): emisión en pausa en el dashboard', (
     for (const testId of ['line-new-vale-paused', 'nav-new-vale-paused']) {
       const button = page.getByTestId(testId);
       await expect(button).toHaveAttribute('aria-disabled', 'true');
+      // Al centro de la pantalla, para que el header fijo no tape el botón tras abrir el tracker.
+      await button.evaluate((el) => el.scrollIntoView({ block: 'center' }));
       // aria-disabled: Playwright lo trata como deshabilitado, pero la asociada sí puede tocarlo.
       await button.click({ force: true });
       await expect(page.getByRole('status').filter({ hasText: PAUSED_MESSAGE }).first()).toBeVisible();
@@ -125,24 +127,27 @@ test.describe('Sin cambios para las demás asociadas', () => {
 });
 
 test.describe('Mi Teléfono PrestaGana', () => {
-  test('colapsada por default con el resumen; se expande con el avance', async ({ context, page }) => {
+  test('etapa y stepper siempre visibles; se expande con modelo e IMEI', async ({ context, page }) => {
     await login(context, '1000011');
     await page.goto('/');
+    const tracker = page.getByTestId('phone-tracker');
     const toggle = page.getByTestId('phone-tracker-toggle');
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    await expect(toggle.getByTestId('phone-tracker-summary')).toHaveText('Activo');
-    await expect(toggle.getByTestId('phone-tracker-step')).toHaveText('Paso 5 de 5');
-    await expect(page.getByTestId('phone-tracker')).toContainText('Samsung Galaxy A17');
+    await expect(toggle).toContainText('Folio TEL-1000011-DEMO');
+    await expect(tracker.getByTestId('phone-tracker-summary')).toHaveText('Activo');
+    await expect(tracker.getByTestId('phone-tracker-step')).toHaveText('Paso 5 de 5');
     expect((await toggle.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-    // El qué sigue se ve colapsada; el detalle de pasos no.
+    // Stepper y qué sigue se ven colapsada; modelo e IMEI no.
+    await expect(tracker.getByTestId('phone-tracker-current')).toHaveText(/Activo/);
     await expect(page.getByTestId('phone-tracker-todo')).toBeVisible();
     await expect(page.getByTestId('phone-tracker-details')).toHaveCount(0);
 
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.getByTestId('phone-tracker-current')).toHaveText(/Activo/);
+    const details = page.getByTestId('phone-tracker-details');
+    await expect(details).toContainText('Samsung Galaxy A17');
+    await expect(details).toContainText('IMEI terminación 0011');
     await expect(page.getByTestId('phone-tracker-todo')).toBeVisible();
-    await expect(page.getByTestId('phone-tracker')).toContainText('Folio TEL-1000011-DEMO');
   });
 });
 
@@ -154,9 +159,9 @@ test.describe('Datos de la Asociada', () => {
     await expect(toggle).toContainText('Datos de la Asociada');
     await expect(toggle).toContainText('ROSA MARTINEZ LOPEZ');
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    // El nivel vive como badge en la tarjeta; ya no hay tarjeta "Nivel".
-    await expect(toggle.getByTestId('associate-level')).toHaveText('Senior');
-    await expect(page.getByText('Nivel Senior')).toHaveCount(0);
+    // El nivel vive como pastilla en el saludo, ya no en la tarjeta de datos.
+    await expect(page.getByTestId('associate-level')).toHaveText('Nivel Senior');
+    await expect(toggle.getByTestId('associate-level')).toHaveCount(0);
     const box = await toggle.boundingBox();
     expect(box!.height).toBeGreaterThanOrEqual(44);
     await expect(page.getByText('No. Asociada')).toBeHidden();
@@ -168,5 +173,21 @@ test.describe('Datos de la Asociada', () => {
       await expect(details.getByText(label, { exact: true })).toBeVisible();
     }
     await expect(details).toContainText('1000001');
+  });
+});
+
+test.describe('Línea PrestaGana', () => {
+  test('el medidor muestra el porcentaje colocado y Vale Nuevo va abajo', async ({ context, page }) => {
+    await login(context, '1000001');
+    await page.goto('/');
+    const gauge = page.getByRole('img', { name: /% de la línea colocada$/ });
+    await expect(gauge).toBeVisible();
+    const label = await gauge.getAttribute('aria-label');
+    const percent = Number(label!.match(/^(\d+)%/)![1]);
+    expect(percent).toBeGreaterThanOrEqual(0);
+    expect(percent).toBeLessThanOrEqual(100);
+    await expect(gauge).toContainText(`${percent}%`);
+    const newVale = page.getByRole('link', { name: 'Vale Nuevo' }).first();
+    expect((await newVale.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   });
 });
