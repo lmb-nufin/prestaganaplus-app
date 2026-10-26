@@ -83,3 +83,4 @@ Igual (Alert destructive con `issuancePause`).
 - **`phone-tracker-toggle`** es la fila del encabezado; la pastilla y el stepper quedan fuera del botón porque siempre están visibles.
 - **Pagar Ahora:** `PaymentOptionsDialog` recibe una prop opcional `prominent` que solo cambia el estilo y el ícono del trigger; el diálogo no cambia.
 - **Mi Teléfono sin equipo:** antes de recoger el equipo no hay modelo ni IMEI, y el folio ya está en el encabezado, así que no hay nada que desplegar: el encabezado se muestra sin chevron y sin `phone-tracker-toggle`. El helper de pruebas `openPhoneTracker` no hace nada en ese caso.
+- **Equipo reportado o revocado:** además de los pasos completados, el paso actual (anillo y etiqueta) también va en rojo, igual que el StepBar anterior, para que no quede un círculo indigo junto a la pastilla roja. Pendiente de confirmar con el dueño.
