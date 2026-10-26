@@ -2,22 +2,23 @@ import { expect, test } from '@playwright/test';
 import { login, openPhoneTracker } from './helpers';
 
 const TRACKER_CASES = [
-  { associate: '1000007', step: 'Solicitado', todo: 'Transfiere el enganche' },
-  { associate: '1000008', step: 'Enganche confirmado', todo: 'Recibimos tu enganche' },
-  { associate: '1000009', step: 'En preparación', todo: 'Estamos configurando' },
-  { associate: '1000010', step: 'Listo para recoger', todo: 'Recógelo en tu sucursal con tu INE; ahí firmas tu contrato.' },
-  { associate: '1000011', step: 'Activo', todo: 'tus vales se emiten desde él' },
+  { associate: '1000007', step: 'Solicitado', short: 'Solicitado', todo: 'Transfiere el enganche' },
+  { associate: '1000008', step: 'Enganche confirmado', short: 'Enganche', todo: 'Recibimos tu enganche' },
+  { associate: '1000009', step: 'En preparación', short: 'Preparación', todo: 'Estamos configurando' },
+  { associate: '1000010', step: 'Listo para recoger', short: 'Recoger', todo: 'Recógelo en tu sucursal con tu INE; ahí firmas tu contrato.' },
+  { associate: '1000011', step: 'Activo', short: 'Activo', todo: 'tus vales se emiten desde él' },
 ];
 
 test.describe('Tracker en el dashboard', () => {
-  for (const { associate, step, todo } of TRACKER_CASES) {
+  for (const { associate, step, short, todo } of TRACKER_CASES) {
     test(`estatus ${step}`, async ({ context, page }) => {
       await login(context, associate);
       await page.goto('/');
       const tracker = page.getByTestId('phone-tracker');
       await expect(tracker.getByTestId('phone-tracker-summary')).toContainText(step);
       await openPhoneTracker(page);
-      await expect(tracker.getByTestId('phone-tracker-current')).toHaveText(new RegExp(step));
+      // El stepper usa la etiqueta corta del paso.
+      await expect(tracker.getByTestId('phone-tracker-current')).toHaveText(new RegExp(short));
       await expect(tracker.locator('[aria-current="step"]')).toHaveCount(1);
       await expect(tracker.getByTestId('phone-tracker-todo')).toContainText(todo);
     });
