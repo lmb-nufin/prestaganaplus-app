@@ -43,7 +43,7 @@ function Stepper({ currentIndex, danger, stepText }: { currentIndex: number; dan
                 className={cn(
                   'flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold',
                   done && (danger ? 'bg-destructive/60 text-white' : 'bg-indigo-600 text-white'),
-                  active && (danger ? 'bg-white text-destructive ring-2 ring-destructive/60' : 'bg-white text-indigo-600 ring-2 ring-indigo-600'),
+                  active && 'bg-white text-indigo-600 ring-2 ring-indigo-600',
                   !done && !active && 'bg-white text-muted-foreground ring-2 ring-[#E5E7EB]'
                 )}
                 aria-hidden="true"
@@ -53,7 +53,7 @@ function Stepper({ currentIndex, danger, stepText }: { currentIndex: number; dan
               <span
                 className={cn(
                   'text-center text-[11px] leading-tight',
-                  active ? cn('font-bold', danger ? 'text-destructive' : 'text-indigo-900') : 'text-muted-foreground'
+                  active ? 'font-bold text-indigo-900' : 'text-muted-foreground'
                 )}
               >
                 {step.short}
