@@ -10,8 +10,7 @@ type SubPageHeaderProps = {
 } & ({ backHref: string; onBack?: never } | { onBack: () => void; backHref?: never });
 
 // Header de las pantallas que salen de la navegación principal (Vale Nuevo, firma, teléfono):
-// flecha de regreso a la izquierda y el título de la pantalla. Fijo, como el Header principal,
-// con un espacio del mismo alto para que el contenido empiece debajo.
+// flecha de regreso a la izquierda y el título de la pantalla. Va dentro de AppShell, como el Header principal.
 export function SubPageHeader({ title, backLabel, backHref, onBack }: SubPageHeaderProps) {
   const icon = (
     <>
@@ -21,8 +20,7 @@ export function SubPageHeader({ title, backLabel, backHref, onBack }: SubPageHea
   );
 
   return (
-    <>
-      <header className="fixed inset-x-0 top-0 z-50 w-full border-b bg-background">
+    <header className="relative z-50 w-full flex-shrink-0 border-b bg-background">
         <div className="container mx-auto flex h-14 max-w-md items-center gap-1 px-2">
           {backHref ? (
             <Button variant="ghost" size="icon" className="h-10 w-10" asChild>
@@ -35,8 +33,6 @@ export function SubPageHeader({ title, backLabel, backHref, onBack }: SubPageHea
           )}
           <h1 className="truncate font-headline text-base font-semibold" data-testid="sub-page-title">{title}</h1>
         </div>
-      </header>
-      <div aria-hidden="true" className="h-[57px] flex-shrink-0" />
-    </>
+    </header>
   );
 }

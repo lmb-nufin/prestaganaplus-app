@@ -12,6 +12,7 @@ import { PersonalLoanForm } from '@/components/personal-loan-form';
 import { PersonalLoanOptions } from '@/components/personal-loan-options';
 import { DeviceGate } from '@/components/device-gate';
 import { SubPageHeader } from '@/components/sub-page-header';
+import { AppShell } from '@/components/app-shell';
 import type { ExistingClient, IssuanceMode, PersonalLoanOption, PhoneOfferOption } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -192,13 +193,17 @@ export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanIns
   const isPersonalStep = step === 'personal' || step === 'personal_cash';
 
   return (
-    <div className={cn('flex flex-col min-h-screen', isPersonalStep ? 'bg-indigo-50/40' : 'bg-muted/30')}>
-       <SubPageHeader
-         title="Vale Nuevo"
-         backLabel={step === 'choice' ? 'Volver a Vales' : 'Regresar al paso anterior'}
-         onBack={handleBack}
-       />
-       <main className="flex-grow w-full">
+    <AppShell
+       className={isPersonalStep ? 'bg-indigo-50/40' : 'bg-muted/30'}
+       header={
+         <SubPageHeader
+           title="Vale Nuevo"
+           backLabel={step === 'choice' ? 'Volver a Vales' : 'Regresar al paso anterior'}
+           onBack={handleBack}
+         />
+       }
+    >
+       <main className="w-full">
          <div className="w-full max-w-md mx-auto py-4 px-2">
              <Card className={cn('shadow-lg', isPersonalStep && 'border-indigo-200')}>
                 <CardHeader className={cn(isPersonalStep && 'rounded-t-lg bg-indigo-600 text-white')}>
@@ -215,6 +220,6 @@ export function NewValeFlow({ personalLoan, personalLoanAmounts, personalLoanIns
             </Card>
          </div>
        </main>
-    </div>
+    </AppShell>
   );
 }
