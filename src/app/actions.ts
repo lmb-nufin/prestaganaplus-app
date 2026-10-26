@@ -513,7 +513,7 @@ export async function cancelVale(prevState: any, formData: FormData) {
         return { success: false, message: result.message };
     } catch (error) {
         console.error('Error cancelling vale:', error);
-        return { success: false, message: 'Ocurrió un error al cancelar el vale.' };
+        return { success: false, message: 'Ocurrió un error inesperado al cancelar el vale.' };
     }
 }
 

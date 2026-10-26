@@ -36,20 +36,38 @@ test.describe('Paridad con producción', () => {
     await expect(page.locator('a[href="tel:5662302984"]')).toHaveCount(1);
   });
 
-  test('cierra la sesión tras 5 minutos sin actividad; el scroll del contenido cuenta como actividad', async ({ context, page }) => {
+  test('el scroll del contenido cuenta como actividad: 8 minutos con un scroll a la mitad no cierran la sesión', async ({ context, page }) => {
     await page.clock.install();
     await login(context, '1000011');
     await page.goto('/');
     await expect(page.getByText('Línea PrestaGana')).toBeVisible();
 
-    // 4 minutos, scroll dentro del contenido y otros 4: sigue dentro.
     await page.clock.fastForward('04:00');
-    await page.getByTestId('app-scroll').evaluate((el) => el.scrollTo(0, 400));
-    await page.clock.fastForward('04:00');
+    const scroll = page.getByTestId('app-scroll');
+    await scroll.evaluate((el) => el.scrollTo(0, 400));
+    expect(await scroll.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+    // El evento scroll sale en el siguiente frame, que también va con el reloj simulado.
+    await page.clock.runFor(1000);
+    await page.clock.fastForward('03:59');
+    // El cierre es una server action: se le da tiempo real de terminar antes de revisar.
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2500);
     await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByText('Línea PrestaGana')).toBeVisible();
 
-    // Más de 5 minutos sin nada: regresa al login.
+    // Después, más de 5 minutos sin nada: regresa al login.
     await page.clock.fastForward('05:30');
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test('control: los mismos 8 minutos sin scroll cierran la sesión', async ({ context, page }) => {
+    await page.clock.install();
+    await login(context, '1000011');
+    await page.goto('/');
+    await expect(page.getByText('Línea PrestaGana')).toBeVisible();
+
+    await page.clock.fastForward('04:00');
+    await page.clock.fastForward('04:00');
     await expect(page).toHaveURL(/\/login/);
   });
 });

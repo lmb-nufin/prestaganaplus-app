@@ -12,7 +12,7 @@ La app se despliega igual que la app actual en producción: un backend de **Fire
    firebase apphosting:secrets:set prestaganaplus-auth-secret
    ```
 
-   El valor es aleatorio y largo (`openssl rand -base64 32`). No se reutiliza el de otro ambiente ni se escribe en ningún archivo del repo.
+   El valor es aleatorio y largo (`openssl rand -base64 32`). No se reutiliza el de otro ambiente ni se escribe en ningún archivo del repo. Si el CLI no lo pregunta al crearlo, se da acceso al backend con `firebase apphosting:secrets:grantaccess prestaganaplus-auth-secret --backend <backend>`.
 4. Definir `API_BASE_URL` del ambiente en un `apphosting.<ambiente>.yaml` o en la consola de Firebase, como en la app actual. Debe terminar en `/`.
 5. Desplegar y verificar (ver abajo).
 

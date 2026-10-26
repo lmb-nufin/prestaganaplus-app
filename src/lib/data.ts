@@ -123,13 +123,13 @@ export const deleteValeByFolio = async (folio: string): Promise<DeleteValeRespon
             console.warn('[DELETE VALE] La respuesta no es un JSON válido:', responseText);
         }
         if (response.ok) {
-            return { success: true, message: data?.message || data?.Message || 'Vale cancelado exitosamente.' };
+            return { success: true, message: data?.message || data?.Message || `Vale con folio ${folio} eliminado correctamente.` };
         }
         const message =
             data?.message ||
             data?.Message ||
             (responseText && responseText.length < 200 ? responseText : null) ||
-            'No se pudo cancelar el vale.';
+            `No se pudo eliminar el vale con folio ${folio}.`;
         return { success: false, message };
     } catch (error) {
         console.error(`Network error when deleting vale ${folio}:`, error);
