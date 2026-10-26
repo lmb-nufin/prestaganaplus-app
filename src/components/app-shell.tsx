@@ -20,7 +20,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   return (
-    <div className={cn('flex h-[100dvh] flex-col overflow-hidden', className)}>
+    <div className={cn('flex h-screen flex-col overflow-hidden supports-[height:100dvh]:h-[100dvh]', className)}>
       {header}
       <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-y-contain" data-testid="app-scroll">
         {children}

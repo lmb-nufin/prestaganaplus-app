@@ -13,7 +13,7 @@ export default async function ValesPage({ searchParams }: { searchParams: Promis
   const issuancePause = associateNumber ? await getIssuancePause(associateNumber) : null;
   return (
     <AppShell header={<Header />} footer={<BottomNavBar issuancePause={issuancePause} />}>
-      <main className="pb-8 md:pb-0">
+      <main className="pb-10 md:pb-0">
          <Suspense fallback={<ValesDashboardSkeleton />}>
             <ValesDashboard notice={aviso} />
          </Suspense>

@@ -92,7 +92,7 @@ export const ValesDashboardSkeleton = () => {
 export default function Loading() {
   return (
     <AppShell header={<Header />} footer={<BottomNavBar />}>
-      <main className="pb-8 md:pb-0">
+      <main className="pb-10 md:pb-0">
         <ValesDashboardSkeleton />
       </main>
     </AppShell>

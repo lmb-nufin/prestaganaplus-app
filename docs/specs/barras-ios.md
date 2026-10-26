@@ -12,8 +12,8 @@ El header y la barra inferior usan `position: fixed` sobre el scroll del documen
 
 ## Solución: "app shell"
 
-- Nuevo `src/components/app-shell.tsx`: contenedor de `100dvh` en columna con `overflow: hidden`; arriba el header, en medio el contenido como **único** contenedor con scroll (`overflow-y: auto`, `overscroll-behavior: contain`) y abajo la barra inferior. El documento ya no hace scroll, así que no hay nada que WebKit pueda desfasar.
-- `Header`, `SubPageHeader` y `BottomNavBar` dejan de ser `fixed`: son parte normal del layout (`flex-shrink-0`). Se quitan los espaciadores de 57px y el `padding-bottom` de 6rem que reservaba el lugar de la barra fija.
+- Nuevo `src/components/app-shell.tsx`: contenedor de `100dvh` (con `100vh` de respaldo en iOS anteriores a 15.4) en columna con `overflow: hidden`; arriba el header, en medio el contenido como **único** contenedor con scroll (`overflow-y: auto`, `overscroll-behavior: contain`) y abajo la barra inferior. El documento ya no hace scroll, así que no hay nada que WebKit pueda desfasar.
+- `Header`, `SubPageHeader` y `BottomNavBar` dejan de ser `fixed`: son parte normal del layout (`flex-shrink-0`). Se quitan los espaciadores de 57px y el `padding-bottom` de 6rem que reservaba el lugar de la barra fija; queda `pb-10` para que lo último no quede bajo el botón Vale Nuevo, que sobresale de la barra.
 - Usan el shell: `(app)/layout.tsx` (Dashboard, Notificaciones, Perfil, Soporte), `vales/page.tsx` y `vales/loading.tsx`, `new-vale-flow.tsx`, `telefono/page.tsx` y `sign-page-content.tsx`.
 - Sin cambios de diseño, textos, reglas ni server actions.
 

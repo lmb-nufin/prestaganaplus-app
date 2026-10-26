@@ -39,13 +39,16 @@ test.describe('Header y barra inferior estables (app shell)', () => {
       await expectBarsInPlace(page, true);
       await scrollContentToEnd(page);
       await expectBarsInPlace(page, true);
-      // El final del contenido queda arriba de la barra inferior.
-      const contentBottom = await page.getByTestId('app-scroll').evaluate((el) => {
-        const last = el.lastElementChild!.getBoundingClientRect();
-        return Math.round(last.bottom);
+      // Lo último del contenido queda arriba del botón Vale Nuevo (que sobresale de la barra) y de su anillo de 4px.
+      const { contentBottom, fabTop } = await page.evaluate(() => {
+        const bottoms = [...document.querySelectorAll('[data-testid="app-scroll"] main *')]
+          .map((el) => el.getBoundingClientRect())
+          .filter((r) => r.height > 0 && r.width > 0)
+          .map((r) => r.bottom);
+        const fab = document.querySelector('[data-testid="bottom-nav"] a[href="/vales/nuevo"] > *, [data-testid="nav-new-vale-paused"] > *')!;
+        return { contentBottom: Math.round(Math.max(...bottoms)), fabTop: Math.round(fab.getBoundingClientRect().top) };
       });
-      const navTop = await page.getByTestId('bottom-nav').evaluate((el) => Math.round(el.getBoundingClientRect().top));
-      expect(contentBottom).toBeLessThanOrEqual(navTop);
+      expect(contentBottom).toBeLessThanOrEqual(fabTop - 4);
     });
   }
 

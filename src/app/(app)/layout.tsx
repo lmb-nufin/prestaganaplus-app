@@ -13,7 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     return (
         <AppShell header={<Header />} footer={<BottomNavBar issuancePause={issuancePause} />}>
             {/* El padding inferior deja ver lo último bajo el botón Vale Nuevo, que sobresale de la barra. */}
-            <main className="pb-8 md:pb-0">
+            <main className="pb-10 md:pb-0">
                 {children}
             </main>
         </AppShell>
