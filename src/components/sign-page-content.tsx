@@ -7,6 +7,7 @@ import type { IssuanceMode, Vale } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SubPageHeader } from '@/components/sub-page-header';
+import { AppShell } from '@/components/app-shell';
 import { formatCurrency, parseDateOnly } from '@/lib/utils';
 import { DigitalVale } from '@/components/digital-vale';
 import { PersonalBadge } from '@/components/personal-badge';
@@ -37,8 +38,7 @@ export function SignPageContent({ vale, associateName, creditLine, issuance }: {
     const isSignedOrRedeemed = vale.status === 'FIRMADO' || vale.status === 'CANJEADO';
 
   return (
-    <>
-      <SubPageHeader title="Detalle del vale" backLabel="Volver a Vales" backHref="/vales" />
+    <AppShell header={<SubPageHeader title="Detalle del vale" backLabel="Volver a Vales" backHref="/vales" />}>
       <div className="container mx-auto max-w-md py-4 px-2">
         <Card className="shadow-lg">
           <CardHeader className="p-4">
@@ -99,6 +99,6 @@ export function SignPageContent({ vale, associateName, creditLine, issuance }: {
           </div>
         )}
       </div>
-    </>
+    </AppShell>
   );
 }

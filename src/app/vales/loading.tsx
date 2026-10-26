@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import Header from '@/components/header';
 import BottomNavBar from '@/components/bottom-nav-bar';
+import { AppShell } from '@/components/app-shell';
 
 export const ValesDashboardSkeleton = () => {
   return (
@@ -90,12 +91,10 @@ export const ValesDashboardSkeleton = () => {
 
 export default function Loading() {
   return (
-    <>
-      <Header />
-      <main className="flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
+    <AppShell header={<Header />} footer={<BottomNavBar />}>
+      <main className="pb-8 md:pb-0">
         <ValesDashboardSkeleton />
       </main>
-      <BottomNavBar />
-    </>
+    </AppShell>
   );
 }

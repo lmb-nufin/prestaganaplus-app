@@ -93,7 +93,8 @@ const NewValeButton = ({ issuancePause }: { issuancePause?: IssuancePause | null
 
 export default function BottomNavBar({ issuancePause = null }: { issuancePause?: IssuancePause | null }) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden">
+    // Va al final de AppShell (no fixed): en iPhone se queda abajo aunque cambie el alto del navegador.
+    <nav data-testid="bottom-nav" className="relative z-40 flex-shrink-0 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden">
       <div className="container mx-auto flex h-16 items-center justify-between px-0">
         <div className="flex flex-1 justify-around">
           {navItemsLeft.map(item => (

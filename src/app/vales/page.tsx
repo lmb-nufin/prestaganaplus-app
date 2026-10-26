@@ -1,6 +1,7 @@
 import ValesDashboard from '@/components/vales-dashboard';
 import Header from '@/components/header';
 import BottomNavBar from '@/components/bottom-nav-bar';
+import { AppShell } from '@/components/app-shell';
 import { Suspense } from 'react';
 import { ValesDashboardSkeleton } from './loading';
 import { auth } from '@/lib/auth';
@@ -11,14 +12,12 @@ export default async function ValesPage({ searchParams }: { searchParams: Promis
   const associateNumber = (await auth())?.user?.associateNumber;
   const issuancePause = associateNumber ? await getIssuancePause(associateNumber) : null;
   return (
-    <>
-      <Header />
-      <main className="flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
+    <AppShell header={<Header />} footer={<BottomNavBar issuancePause={issuancePause} />}>
+      <main className="pb-8 md:pb-0">
          <Suspense fallback={<ValesDashboardSkeleton />}>
             <ValesDashboard notice={aviso} />
          </Suspense>
       </main>
-      <BottomNavBar issuancePause={issuancePause} />
-    </>
+    </AppShell>
   );
 }

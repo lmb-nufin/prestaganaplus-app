@@ -1,5 +1,6 @@
 import Header from "@/components/header";
 import BottomNavBar from "@/components/bottom-nav-bar";
+import { AppShell } from "@/components/app-shell";
 import { auth } from "@/lib/auth";
 import { getIssuancePause } from "@/lib/phone";
 
@@ -10,13 +11,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     const issuancePause = associateNumber ? await getIssuancePause(associateNumber) : null;
 
     return (
-        <div className="flex flex-col min-h-screen">
-            <Header />
-            {/* El padding inferior deja libre la barra de navegación fija (y la zona del indicador de inicio en iPhone). */}
-            <main className="flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
+        <AppShell header={<Header />} footer={<BottomNavBar issuancePause={issuancePause} />}>
+            {/* El padding inferior deja ver lo último bajo el botón Vale Nuevo, que sobresale de la barra. */}
+            <main className="pb-8 md:pb-0">
                 {children}
             </main>
-            <BottomNavBar issuancePause={issuancePause} />
-        </div>
+        </AppShell>
     );
 }

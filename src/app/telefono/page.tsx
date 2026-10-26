@@ -5,6 +5,7 @@ import { getAssociateDashboard } from '@/lib/data';
 import { getPhoneOfferOption } from '@/lib/phone';
 import { PhoneOfferView } from '@/components/phone-offer';
 import { SubPageHeader } from '@/components/sub-page-header';
+import { AppShell } from '@/components/app-shell';
 
 export default async function PhoneOfferPage() {
   const session = await auth();
@@ -22,13 +23,15 @@ export default async function PhoneOfferPage() {
   const stpClabe: string | undefined = dashboard?.paymentReferences?.stpClabe || undefined;
 
   return (
-    <div className="flex min-h-screen flex-col bg-indigo-50/40">
-      <SubPageHeader title="Teléfono PrestaGana" backLabel="Volver a Préstamo Personal" backHref="/vales/nuevo?paso=personal" />
-      <main className="w-full flex-grow">
+    <AppShell
+      className="bg-indigo-50/40"
+      header={<SubPageHeader title="Teléfono PrestaGana" backLabel="Volver a Préstamo Personal" backHref="/vales/nuevo?paso=personal" />}
+    >
+      <main className="w-full">
         <div className="mx-auto w-full max-w-md px-2 py-4">
           <PhoneOfferView option={option} stpClabe={stpClabe} />
         </div>
       </main>
-    </div>
+    </AppShell>
   );
 }
