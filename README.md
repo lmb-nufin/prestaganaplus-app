@@ -27,7 +27,7 @@ npm install
 npm run dev
 ```
 
-Node.js 20 o 22 LTS (como producción). `npm run dev` no usa Turbopack porque no funciona con NextAuth v5 en esta versión de Next (ver `docs/specs/dev-local.md`).
+Node.js 20 o 22 LTS. En Node 25 también corre, con un aviso inofensivo de `--localstorage-file` en el log. `npm run dev` no usa Turbopack porque no funciona con NextAuth v5 en esta versión de Next (ver `docs/specs/dev-local.md`).
 
 Con `DEMO_MODE=true` la app usa la simulación en memoria de `src/lib/demo-api.ts`. Las asociadas demo están en `.env.example` (NIP `1234`, OTP `123456`).
 
