@@ -69,18 +69,18 @@ export async function signWithOtp(page: Page) {
 export type CapturedAction = { url: string; headers: Record<string, string>; body: string };
 
 /**
- * Intercepta la siguiente llamada a una server action desde la página, la aborta y la regresa
- * para reenviarla a mano (simula llamar la server action directo, sin la UI).
+ * Intercepta la siguiente llamada a una server action cuyo body contenga `marker`, la aborta y la
+ * regresa para reenviarla a mano (simula llamar la server action directo, sin la UI).
+ * Por default busca la firma del equipo: ignora la acción que pide el desafío.
  */
-export async function captureNextServerAction(page: Page, trigger: () => Promise<void>): Promise<CapturedAction> {
+export async function captureNextServerAction(page: Page, trigger: () => Promise<void>, marker = 'firma'): Promise<CapturedAction> {
   let captured: CapturedAction | null = null;
   let resolve!: () => void;
   const done = new Promise<void>((r) => (resolve = r));
   const handler = async (route: any, request: Request) => {
     const headers = request.headers();
     const body = request.postData() ?? '';
-    // Ignora la acción que pide el desafío: queremos la de crear, firmar o cancelar.
-    if (request.method() === 'POST' && headers['next-action'] && body.includes('firma')) {
+    if (request.method() === 'POST' && headers['next-action'] && body.includes(marker)) {
       captured = { url: request.url(), headers, body };
       await route.abort();
       resolve();

@@ -180,7 +180,27 @@ const mockClients: ExistingClient[] = [
     phone: '+525511111111',
     id_cliente: '5001',
   },
+  {
+    curp: 'SITE900101MDFRRN02',
+    firstName: 'ROSA',
+    lastNameP: 'SIN',
+    lastNameM: 'TELEFONO',
+    birthDate: '1990-01-01',
+    phone: '',
+    id_cliente: '5002',
+  },
+  {
+    curp: 'SIID900101MDFRRN03',
+    firstName: 'ELENA',
+    lastNameP: 'SIN',
+    lastNameM: 'IDENTIFICADOR',
+    birthDate: '1990-01-01',
+    phone: '+525522222222',
+    id_cliente: '',
+  },
 ];
+
+const ACTIVE_VALE_FOLIO = '1000001-202610-ACTIVO';
 
 // Se guarda en globalThis para que el estado sobreviva recargas en desarrollo.
 const store = ((globalThis as any).__prestaganaMockVales ??= [
@@ -198,6 +218,22 @@ const store = ((globalThis as any).__prestaganaMockVales ??= [
     tipoVale: 'CLIENTE',
     createdAt: '2026-10-20T16:00:00.000Z',
     signedAt: '2026-10-20T16:10:00.000Z',
+  },
+  // La app lo ve FIRMADO, pero para la API ya está activo: no se puede cancelar.
+  {
+    folio: ACTIVE_VALE_FOLIO,
+    associateNumber: '1000001',
+    firstName: 'JUANA',
+    lastNameP: 'PEREZ',
+    lastNameM: 'GARCIA',
+    birthDate: '1990-01-01',
+    loanAmount: 5000,
+    installments: 10,
+    phone: '+525511111111',
+    status: 'FIRMADO',
+    tipoVale: 'CLIENTE',
+    createdAt: '2026-10-21T16:00:00.000Z',
+    signedAt: '2026-10-21T16:10:00.000Z',
   },
   // Vales pendientes de asociadas con equipo, para probar la firma restringida.
   ...['1000011', '1000012'].map((associateNumber) => ({
@@ -218,7 +254,7 @@ const store = ((globalThis as any).__prestaganaMockVales ??= [
 
 // Reglas que la API .NET debe validar del lado del servidor para tipoVale PERSONAL.
 const PERSONAL_AMOUNTS = Array.from({ length: (9000 - 5000) / 500 + 1 }, (_, i) => 5000 + i * 500);
-const PERSONAL_INSTALLMENTS = [8, 10, 12, 14];
+const PERSONAL_INSTALLMENTS = [8, 10, 12];
 
 const activePersonalVale = (associateNumber: string) =>
   store.find(
@@ -460,6 +496,9 @@ export const demoFetch = async (path: string, init?: RequestInit): Promise<Respo
         return json(vale);
       }
       if (method === 'DELETE') {
+        if (vale.folio === ACTIVE_VALE_FOLIO) {
+          return json({ message: 'El vale ya está activo y no se puede cancelar.' }, 400);
+        }
         store.splice(store.indexOf(vale), 1);
         return json({ success: true });
       }

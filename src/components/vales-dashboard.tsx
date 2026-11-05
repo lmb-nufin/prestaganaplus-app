@@ -54,14 +54,14 @@ const ValesList = ({ vales: valesToList, noDataMessage }: { vales: Vale[], noDat
         ) : (
             <>
             {/* Mobile View - List of Cards */}
-            <div className="md:hidden space-y-1.5 p-2">
+            <div className="md:hidden space-y-2 p-2">
                 {valesToList.map((vale) => (
                 <Link key={vale.folio} href={`/sign/${vale.folio}`} className="block transition-transform active:scale-[0.98]">
                     <Card className="bg-card shadow-sm hover:bg-muted/50">
-                        <CardContent className="py-1.5 px-2">
+                        <CardContent className="p-3 space-y-1">
                         <div className="flex justify-between items-start">
                                 <div>
-                                    <p className="text-[13px] font-bold leading-tight">{`${vale.firstName} ${vale.lastNameP} ${vale.lastNameM}`}</p>
+                                    <p className="font-semibold text-sm leading-tight">{`${vale.firstName} ${vale.lastNameP} ${vale.lastNameM}`}</p>
                                     <span className="font-mono text-xs text-muted-foreground">{vale.folio}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
@@ -69,8 +69,8 @@ const ValesList = ({ vales: valesToList, noDataMessage }: { vales: Vale[], noDat
                                     <ValeStatusBadge status={vale.status} />
                                 </div>
                         </div>
-                            <div className="flex justify-between items-baseline">
-                                <span className="text-sm font-bold text-primary">{formatCurrency(vale.loanAmount)}</span>
+                            <div className="flex justify-between items-baseline pt-1">
+                                <span className="text-lg font-bold text-primary">{formatCurrency(vale.loanAmount)}</span>
                                 <p className="text-xs text-muted-foreground">
                                 {format(new Date(vale.createdAt), "d MMM, yyyy", { locale: es })}
                             </p>

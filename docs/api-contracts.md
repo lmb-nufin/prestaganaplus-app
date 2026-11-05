@@ -153,3 +153,19 @@ Agrega `telefono` cuando hay equipo, para el desglose del Monto a Pagar:
 ```
 
 La app asume que `paymentStatus.amountDue` ya incluye la cuota del teléfono y su mora, y muestra Vales = `amountDue − (pagoQuincenal + mora.monto)`. Pendiente de confirmar con el backend.
+
+## 3. Vales: montos, plazos y cancelación
+
+### Montos y plazos
+
+| Tipo | Montos (saltos de $500) | Plazos |
+|---|---|---|
+| Cliente nuevo | $5,000–$5,500 | 8, 10 o 12 quincenas |
+| Cliente existente (renovado) | $5,000–$9,000 | 8, 10 o 12 quincenas |
+| Préstamo Personal (`tipoVale: "PERSONAL"`) | $5,000–$9,000 | 8, 10 o 12 quincenas |
+
+La app valida estos valores en sus server actions; la API debe validarlos también.
+
+### `DELETE vales/{folio}`
+
+Si cancela, responde 2xx con `{ "message": "..." }`. Si la rechaza (por ejemplo, un vale activo), responde un error con `{ "message": "..." }`: la app muestra ese texto a la asociada. Si el cuerpo no es JSON, la app usa el texto si mide menos de 200 caracteres; si no, un mensaje genérico.

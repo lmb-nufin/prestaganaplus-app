@@ -47,7 +47,7 @@ export function RenewClientCurpForm({ onCurpSuccess, initialCurp = '' }: RenewCl
     setIsLoading(false);
 
     if (result.success && result.data) {
-      onCurpSuccess(result.data, curp);
+      onCurpSuccess({ ...result.data, curp }, curp);
     } else {
       setError(result.message);
     }

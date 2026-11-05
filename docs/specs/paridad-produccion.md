@@ -15,7 +15,7 @@ Se comparó `piloto-v1` contra el repositorio de producción (6 commits, el últ
 | Cierre por inactividad | Activo, 5 minutos | Apagado | Activo, 5 minutos. Además escucha el scroll en captura y `touchstart`: con AppShell el scroll no llega a `window` |
 | Despliegue | Firebase App Hosting (`apphosting.*.yaml`, 1 instancia) | Documentado como servidor Node genérico | `apphosting.yaml` con las variables del piloto; `docs/despliegue.md` describe App Hosting |
 
-- **Préstamo Personal** (apagado en el piloto): sus montos siguen la regla "igual que cliente existente", así que pasan a $5,000–$9,000. Los plazos quedan 8–14 como dice su spec; pendiente de confirmar con Producto.
+- **Préstamo Personal** (apagado en el piloto): sus montos siguen la regla "igual que cliente existente", así que pasan a $5,000–$9,000. Los plazos quedaron en 8–14 en esa rama; `alinear-produccion` los pasa a 8, 10 y 12.
 - **Notificaciones**: no existen en producción; en la app nueva hay 4 avisos de ejemplo. Queda como decisión de Producto (ya listada).
 
 ## Pruebas

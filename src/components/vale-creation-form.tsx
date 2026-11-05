@@ -29,6 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { ExistingClient } from '@/lib/types';
+import { VALE_INSTALLMENTS, valeAmounts } from '@/lib/vale-rules';
 import { useAuditData } from '@/hooks/use-audit-data';
 import { useDeviceSignedSubmit } from '@/hooks/use-device-bridge';
 import { DeviceSignatureError, DeviceSignatureFields } from './device-gate';
@@ -62,8 +63,6 @@ type State = {
     folio?: string;
 };
 const initialState: State = { message: '', errors: {}, folio: undefined };
-
-const plazosPermitidos = [8, 10, 12];
 
 const signatureContext = (form: HTMLFormElement) => ({
   operacion: 'CREAR_VALE' as const,
@@ -107,8 +106,7 @@ export function ValeCreationForm({ existingClientData = null, deviceSignatureReq
   const isRenewedFlow = !!existingClientData;
 
   const loanAmounts = useMemo(() => {
-    const maxAmount = isRenewedFlow ? 9000 : 5500;
-    return Array.from({ length: (maxAmount - 5000) / 500 + 1 }, (_, i) => 5000 + i * 500);
+    return valeAmounts(isRenewedFlow);
   }, [isRenewedFlow]);
   
   
@@ -194,7 +192,7 @@ export function ValeCreationForm({ existingClientData = null, deviceSignatureReq
             <Select name="installments" required>
                 <SelectTrigger><SelectValue placeholder="Selecciona un plazo" /></SelectTrigger>
                 <SelectContent>
-                    {plazosPermitidos.map((q) => (
+                    {VALE_INSTALLMENTS.map((q) => (
                         <SelectItem key={q} value={String(q)}>
                             {q} Quincenas
                         </SelectItem>
