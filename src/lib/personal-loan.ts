@@ -3,10 +3,11 @@ import 'server-only';
 import { addMonths } from 'date-fns';
 import { getAssociateDashboard, getPersonalLoanInfo, getVales } from './data';
 import type { PersonalLoanEligibility } from './types';
+import { VALE_INSTALLMENTS, valeAmounts } from './vale-rules';
 
-// Mismos montos que cliente existente: de $5,000 a $9,000 en saltos de $500.
-export const PERSONAL_LOAN_AMOUNTS = Array.from({ length: (9000 - 5000) / 500 + 1 }, (_, i) => 5000 + i * 500);
-export const PERSONAL_LOAN_INSTALLMENTS = [8, 10, 12, 14];
+// Mismos montos y plazos que cliente existente: de $5,000 a $9,000 en saltos de $500, a 8, 10 o 12 quincenas.
+export const PERSONAL_LOAN_AMOUNTS = valeAmounts(true);
+export const PERSONAL_LOAN_INSTALLMENTS = VALE_INSTALLMENTS;
 export const PERSONAL_LOAN_MIN_MONTHS = 3;
 
 // "Al Día", "Al día" y "AL DIA" cuentan igual; cualquier otro valor bloquea.

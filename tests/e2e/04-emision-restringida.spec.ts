@@ -12,6 +12,7 @@ import {
   login,
   replayServerAction,
   openPhoneTracker,
+  pickOption,
   signWithOtp,
   stripDeviceSignature,
   tamperDeviceSignature,
@@ -110,6 +111,20 @@ test.describe('Dentro de la miniapp (?demoDevice=1)', () => {
     await expect(page.getByText('15 de mayo, 1985')).toBeVisible();
     await signWithOtp(page);
     await expect(page.getByText('FIRMADO', { exact: true })).toBeVisible();
+  });
+
+  test('crea un vale de cliente existente a $9,000 con la firma del equipo', async ({ context, page }) => {
+    await login(context, RESTRICTED);
+    await page.goto('/vales/nuevo?demoDevice=1');
+    await page.getByRole('button', { name: /Cliente Existente/ }).click();
+    await page.locator('#curp').fill('PEGJ900101MDFRRN01');
+    await page.locator('#curp-confirm').fill('PEGJ900101MDFRRN01');
+    await page.getByRole('button', { name: 'Buscar Cliente' }).click();
+    await pickOption(page, 0, '$9,000.00');
+    await pickOption(page, 1, '12 Quincenas');
+    await confirmNewVale(page);
+    await expect(page).toHaveURL(/\/sign\/1000011-/);
+    await expect(page.getByText('1 de enero, 1990')).toBeVisible();
   });
 
   // Antes del préstamo en efectivo: después ya no tendría opciones y el botón saldría deshabilitado.

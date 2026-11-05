@@ -5,9 +5,10 @@ import { z } from 'zod';
 import { addVale, findValeByFolio, getVales as getValesFromDb, updateValeStatus as updateValeStatusInDb, findUserByAssociateNumber, deleteValeByFolio, findClientByCurp, createUser, updateUserNip, storeOtpForReset, getStoredOtpForReset, addPersonalLoanVale, createPhoneRequest, getPhoneState, reportDevice, requestDeviceChallenge as requestDeviceChallengeFromApi } from '@/lib/data';
 import { apiFetch } from '@/lib/api';
 import { getPersonalLoanEligibility, PERSONAL_LOAN_AMOUNTS, PERSONAL_LOAN_INSTALLMENTS } from '@/lib/personal-loan';
+import { VALE_INSTALLMENTS, valeAmounts } from '@/lib/vale-rules';
 import { getIssuanceMode, getPhoneOfferOption, requireDeviceAuthorization } from '@/lib/phone';
 import { isPersonalLoanEnabled, isPhoneEnabled } from '@/lib/features';
-import type { DeviceChallenge, DeviceOperation, DeviceReportReason } from '@/lib/types';
+import type { DeviceChallenge, DeviceOperation, DeviceReportReason, ExistingClient } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { signIn, signOut, auth } from '@/lib/auth';
 import { AuthError } from 'next-auth';
@@ -82,6 +83,27 @@ export async function createVale(prevState: any, formData: FormData) {
         };
     }
     
+    // El formulario solo ofrece estos valores, pero la regla se valida aquí.
+    if (!valeAmounts(validatedFields.data.isRenewed === 'true').includes(validatedFields.data.loanAmount)) {
+        return { errors: { loanAmount: ['Monto no permitido.'] }, message: 'Monto no permitido.' };
+    }
+    if (!VALE_INSTALLMENTS.includes(validatedFields.data.installments)) {
+        return { errors: { installments: ['Plazo no permitido.'] }, message: 'Plazo no permitido.' };
+    }
+    // isRenewed viene del formulario: arriba del tope de cliente nuevo se confirma el cliente contra la API,
+    // y los datos personales salen de ella para que no se use el CURP de otra persona.
+    let verifiedClient: ExistingClient | null = null;
+    if (!valeAmounts(false).includes(validatedFields.data.loanAmount)) {
+        const curp = String(formData.get('curp') ?? '');
+        const found = /^[A-Z0-9]{18}$/.test(curp) ? (await findClientByCurp(curp)).data : null;
+        const requiredFields = ['firstName', 'lastNameP', 'lastNameM', 'birthDate', 'phone', 'id_cliente'] as const;
+        const isComplete = !!found && requiredFields.every((field) => String(found[field] ?? '').trim() !== '');
+        if (!found || !isComplete || String(found.id_cliente) !== (validatedFields.data.id_cliente ?? '')) {
+            return { message: 'No pudimos verificar al cliente existente para este monto.' };
+        }
+        verifiedClient = found;
+    }
+
     const deviceError = await requireDeviceAuthorization({
         associateNumber,
         operacion: 'CREAR_VALE',
@@ -96,10 +118,10 @@ export async function createVale(prevState: any, formData: FormData) {
     let phoneE164;
 
     if (isRenewed) {
-        if (!validatedFields.data.phone) {
+        phoneE164 = verifiedClient?.phone || validatedFields.data.phone;
+        if (!phoneE164) {
             return { message: 'Falta el número de teléfono para el cliente existente.' };
         }
-        phoneE164 = validatedFields.data.phone;
     } else {
         const phoneRegex = /^\d{10}$/;
         if (!validatedFields.data.phone_number || !phoneRegex.test(validatedFields.data.phone_number)) {
@@ -126,10 +148,10 @@ export async function createVale(prevState: any, formData: FormData) {
 
     const dataToSave = {
         associateNumber: associateNumber,
-        firstName: validatedFields.data.firstName,
-        lastNameP: validatedFields.data.lastNameP,
-        lastNameM: validatedFields.data.lastNameM,
-        birthDate: validatedFields.data.birthDate,
+        firstName: verifiedClient?.firstName ?? validatedFields.data.firstName,
+        lastNameP: verifiedClient?.lastNameP ?? validatedFields.data.lastNameP,
+        lastNameM: verifiedClient?.lastNameM ?? validatedFields.data.lastNameM,
+        birthDate: verifiedClient?.birthDate?.slice(0, 10) ?? validatedFields.data.birthDate,
         loanAmount: validatedFields.data.loanAmount,
         installments: validatedFields.data.installments,
         phone: phoneE164,
@@ -503,10 +525,8 @@ export async function cancelVale(prevState: any, formData: FormData) {
     try {
         const result = await deleteValeByFolio(folio);
         if (result.success) {
-            revalidatePath('/');
-            revalidatePath('/vales');
-            revalidatePath(`/vales/${folio}`); 
-            revalidatePath(`/sign/${folio}`);
+            // Sin revalidatePath: volvería a pintar /sign/{folio}, que ya no existe, y su redirección
+            // mostraría "No encontramos ese vale". El diálogo navega a /vales y refresca.
             return { success: true, message: result.message };
         }
         // Si la API lo rechaza (p. ej. un vale ya activo), se muestra su mensaje.

@@ -68,7 +68,8 @@ interface ValeCancellationDialogProps {
         // cualquier limpieza, forzando la navegación antes de que la página de fondo
         // intente recargarse y falle con el 404.
         setTimeout(() => {
-            router.push('/vales'); 
+            router.push('/vales');
+            router.refresh();
         }, 0);
   
         // 3. Mostrar el toast (Puede ser después de la redirección)
